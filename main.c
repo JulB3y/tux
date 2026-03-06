@@ -5,6 +5,7 @@
 //      activate   alternate screen with "\x1b[?1049h"
 //      deactivate alternate screen with "\x1b[?1049l"
 
+#include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -92,6 +93,12 @@ int getTermSize(int *rows, int *cols) {
   return 1;
 }
 
+int readKey() {
+  char c;
+  read(0, &c, 1);
+  return c;
+}
+
 /*
  *
  * ui components
@@ -167,19 +174,18 @@ int getGUIApps(char *d, char *n, char *appName, char *execCmd) {
   return !isTerm;
 }
 
-void writeToFile(char *appName, char *execCmd, char *dataPath, char *fileName) {
-  char filePath[512];
-  snprintf(filePath, sizeof(filePath), "%s/%s", dataPath, fileName);
-  FILE *f = fopen(filePath, "a");
-  if (!f)
-    return;
+FILE *openDataFile(char *dataPath, char *fileName) {
+  char path[512];
+  snprintf(path, sizeof(path), "%s/%s", dataPath, fileName);
 
-  fprintf(f, "%s|%s\n", appName, execCmd);
-
-  fclose(f);
+  return fopen(path, "w");
 }
 
-void search(char *dataPath) {
+void writeToFile(FILE *file, char *appName, char *execCmd) {
+  fprintf(file, "%s|%s\n", appName, execCmd);
+}
+
+void writeAppDataFile(char *dataPath) {
   char *path = "/usr/share/applications/";
   DIR *dir;
   struct dirent *ent;
@@ -187,16 +193,20 @@ void search(char *dataPath) {
   char appName[256]; // string to store name value
   char execCmd[256]; // string to store execution command of .desktop file
   char *token = strtok(path, ":");
+  FILE *file = openDataFile(dataPath, "app.dat");
   while (token != 0) {
     if ((dir = opendir(token)) != NULL) {
       while ((ent = readdir(dir)) != NULL) {
         if (getGUIApps(token, ent->d_name, appName, execCmd))
-          writeToFile(appName, execCmd, dataPath, "app.dat");
+          writeToFile(file, appName, execCmd);
       }
     }
     token = strtok(NULL, ":");
   }
+  fclose(file);
 }
+
+void search() {}
 
 void onStartUp() {
   actRaw();
@@ -218,21 +228,53 @@ void onStartUp() {
   // creating path
   mkdir(dataPath, 0755);
 
-  search(dataPath);
+  writeAppDataFile(dataPath);
+}
+
+int keyProcessing(int key, char query[], int *queryLen) {
+  if (key == 27) { // ESC
+    deactAltScr();
+    deactRaw();
+
+    return 0;
+  } else if (key == 127 || key == 8) { // backspace
+    if (*queryLen > 0)
+      query[--*queryLen] = '\0';
+  } else if (key == '\r' || key == '\n') {
+    // TODO: exec app
+  } else if (isprint(key)) {
+    if (*queryLen < 512) {
+      *queryLen += 1;
+      query[*(queryLen)-1] = (char)key;
+      query[*(queryLen)] = '\0';
+    }
+  }
+
+  return 1;
 }
 
 void app() {
   onStartUp();
 
+  char query[512] = {0};
+  char altquery[512] = {0};
+  int queryLen = 0;
+
   for (;;) {
-    char c;
-    read(0, &c, 1);
+    int key = readKey();
 
-    if (c == 'q') {
-      deactAltScr();
-      deactRaw();
-
+    if (!keyProcessing(key, query, &queryLen)) {
       break;
+    }
+
+    if (strcmp(query, altquery) != 0) {
+      strcpy(altquery, query);
+      if (query[0] == 0) {
+        printf("\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
+      } else {
+        printf("\x1b[%d;%dH\x1b[2K│ %s", termRows - 1, 1, query);
+      }
+      ui_change = 1;
     }
 
     if (sizeChanged()) {
