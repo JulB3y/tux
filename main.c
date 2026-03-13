@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +32,8 @@ int ui_change = 1;
 // size vars
 int termRows = 0;
 int termCols = 0;
+
+volatile sig_atomic_t resized = 0;
 
 /*
  *
@@ -90,6 +93,8 @@ void actRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+void handleWinch(int sig) { resized = 1; }
+
 // get window size
 int getTermSize(int *rows, int *cols) {
   struct winsize ws;
@@ -137,17 +142,6 @@ int readKey() {
   }
 
   return c;
-}
-
-int sizeChanged() {
-  int cols, rows;
-  if (!getTermSize(&rows, &cols))
-    return 0;
-  if (termCols == cols && termRows == rows)
-    return 0;
-  termCols = cols;
-  termRows = rows;
-  return 1;
 }
 
 int isSubsequence(const char *q, const char *s) {
@@ -500,6 +494,10 @@ void onStartUp(int *appAmount, AppList appList) {
 
   *appAmount = writeAppDataFile(dataPath);
   writeAppList(dataPath, appList, appAmount);
+
+  struct sigaction sa = {0};
+  sa.sa_handler = handleWinch;
+  sigaction(SIGWINCH, &sa, NULL);
 }
 
 void handleArrowKeyEvents(Match *top, int key, int *selected) {
@@ -613,9 +611,14 @@ void app() {
       highlightSelected(selected, top);
     }
 
-    if (sizeChanged()) {
+    if (resized) {
+      resized = 0;
+
+      getTermSize(&termRows, &termCols);
       basicFrame();
       printQuery(query, queryLen);
+      printResults(top, top_n);
+      highlightSelected(selected, top);
     }
 
     if (ui_change) {
