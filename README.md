@@ -17,6 +17,11 @@ A simple app launcher for Unix written in C
 - [ ] update `app.dat` only when application entries change
 
 ## installation
+you can find the package in the arch user repository and can install it through yay:
+```bash
+yay -S tux
+```
+
 the easiest way to use the application is to compile it yourself.
 
 Build the binary:
