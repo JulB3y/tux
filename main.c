@@ -76,13 +76,13 @@ void actRaw() {
 
   raw = orig;
 
-  raw.c_lflag &=
-      ~(ICANON | ECHO | ISIG); // disabling ICANON, ECHO and ISIG (linebuffer,
-                               // auto-out, ctrl-c and co.)
-  raw.c_iflag &= ~(IXON |      // diabling ctrl-s/q
-                   ICRNL);     //  enabling normal return for return key
+  raw.c_lflag &= (tcflag_t) ~(ICANON | ECHO |
+                              ISIG);  // disabling ICANON, ECHO and ISIG
+                                      // (linebuffer, auto-out, ctrl-c and co.)
+  raw.c_iflag &= (tcflag_t) ~(IXON |  // diabling ctrl-s/q
+                              ICRNL); //  enabling normal return for return key
 
-  raw.c_oflag &= ~(OPOST); // no auto output
+  raw.c_oflag &= (tcflag_t) ~(OPOST); // no auto output
 
   raw.c_cc[VMIN] = 1; // 1 byte to compute input
   raw.c_cc[VTIME] = 0;
@@ -243,22 +243,22 @@ void basicFrame() {
   clearResUi();
   ui_change = 1;
 }
-int already_in_top(Match *top, size_t top_n, char *name) {
-  for (size_t i = 0; i < top_n; i++) {
+int already_in_top(Match *top, int top_n, char *name) {
+  for (int i = 0; i < top_n; i++) {
     if (top[i].name == name)
       return 1;
   }
   return 0;
 }
 
-void tryInsertTop(Match *top, size_t top_n, char *name, char *exec, int score) {
+void tryInsertTop(Match *top, int top_n, char *name, char *exec, int score) {
   if (score <= 0 || top_n == 0)
     return;
   if (already_in_top(top, top_n, name))
     return;
 
-  size_t worst = 0;
-  for (size_t i = 1; i < top_n; i++) {
+  int worst = 0;
+  for (int i = 1; i < top_n; i++) {
     if (top[i].score < top[worst].score)
       worst = i;
   }
@@ -328,7 +328,6 @@ FILE *openDataFile(char *dataPath, char *fileName, char *option) {
 
 void stripDesktopCodes(char *s) {
   char *src = s, *dst = s;
-
   while (*src) {
     if (src[0] == '%' && src[1] != '\0') {
       if (src[1] == '%') {
@@ -389,10 +388,10 @@ void writeAppList(char *dataPath, AppList appList, int *appAmount) {
   char *execLine = NULL;
   size_t execSize = 0;
 
-  char *names = malloc(sizeof(char) * (appFileSize + 1));
-  char **nameList = malloc(sizeof(char *) * *appAmount);
-  char *execs = malloc(sizeof(char) * (execFileSize + 1));
-  char **execList = malloc(sizeof(char *) * *appAmount);
+  char *names = malloc(sizeof(char) * (size_t)(appFileSize + 1));
+  char **nameList = malloc(sizeof(char *) * (size_t)*appAmount);
+  char *execs = malloc(sizeof(char) * (size_t)(execFileSize + 1));
+  char **execList = malloc(sizeof(char *) * (size_t)*appAmount);
   if (!nameList || !execList)
     return;
 
@@ -425,7 +424,6 @@ void freeStorage(AppList appList) {
 
 Match *search(Match *top, char *query, AppList appList, int appAmount,
               char *path, int *top_n) {
-  int top_n2 = termRows - 3;
   clearResUi();
   if (!top)
     return 0;
@@ -514,7 +512,7 @@ int keyProcessing(int key, char query[], int *queryLen, int *selected,
     return 0;
     system(top[0].exec);
   } else if (key == KEY_UP) {
-    *selected = *selected < termRows - 3 ? (*selected)++ : 0;
+    *selected = *selected < termRows - 3 ? *selected + 1 : 0;
   } else if (isprint(key)) {
     if (*queryLen < 512) {
       *queryLen += 1;
@@ -526,7 +524,7 @@ int keyProcessing(int key, char query[], int *queryLen, int *selected,
   return 1;
 }
 
-int queryChanged(char *query, char *altquery, int queryLen) {
+int queryChanged(char *query, char *altquery) {
   if (strcmp(query, altquery) != 0) {
     strcpy(altquery, query);
     return 1;
@@ -562,7 +560,7 @@ void app() {
   onStartUp(&appAmount, &appList);
   int top_n = appAmount > termRows ? termRows : appAmount;
 
-  Match *top = calloc(termRows, sizeof(Match));
+  Match *top = calloc((size_t)termRows, sizeof(Match));
   search(top, query, &appList, appAmount, path, &top_n);
   printResults(top, top_n);
   highlightSelected(selected, top);
@@ -583,7 +581,7 @@ void app() {
       highlightSelected(selected, top);
     }
 
-    if (queryChanged(query, altquery, queryLen)) {
+    if (queryChanged(query, altquery)) {
       printQuery(query, queryLen);
       top = search(top, query, &appList, appAmount, path, &top_n);
       printResults(top, top_n);
