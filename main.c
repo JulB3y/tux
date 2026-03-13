@@ -119,12 +119,16 @@ int readKey() {
     if (seq[0] == '[') {
       switch (seq[1]) {
       case 'A':
+        ui_change = 1;
         return KEY_UP;
       case 'B':
+        ui_change = 1;
         return KEY_DOWN;
       case 'C':
+        ui_change = 1;
         return KEY_RIGHT;
       case 'D':
+        ui_change = 1;
         return KEY_LEFT;
       }
     }
@@ -445,7 +449,7 @@ Match *search(Match *top, char *query, AppList appList, int appAmount,
 void printResults(Match *top, int top_n) {
   for (int i = 0; i < top_n; i++) {
     if (top[i].score > 0) {
-      printf("\x1b[%d;0H %s", termRows - 3 - i, top[i].name);
+      printf("\x1b[%d;0H %s ", termRows - 3 - i, top[i].name);
     }
   }
 }
@@ -490,9 +494,20 @@ void onStartUp(int *appAmount, AppList appList) {
   writeAppList(dataPath, appList, appAmount);
 }
 
+void handleArrowKeyEvents(Match *top, int key, int *selected) {
+  if (key == KEY_UP) {
+    *selected = top[*selected + 1].score == 0 ? *selected : *selected + 1;
+  } else if (key == KEY_DOWN) {
+    *selected = *selected > 0 ? *selected - 1 : *selected;
+  }
+}
+
 void highlightSelected(int selected, Match *top) {
-  printf("\x1b[48;2;180;180;180m\x1b[%d;2H%s\x1b[0m", termRows - 3 - selected,
-         top[selected].score == 0 ? "no result" : top[selected].name);
+  printf("\x1b[%d;1H", termRows - 3 - selected);
+  if (top[0].score != 0)
+    printf("\x1b[48;2;100;100;100m %s \x1b[0m", top[selected].name);
+  else if (top[0].score == 0)
+    printf("\033[38;2;100;100;100m %s \x1b[0m", "no result");
 }
 
 int keyProcessing(int key, char query[], int *queryLen, int *selected,
@@ -511,8 +526,9 @@ int keyProcessing(int key, char query[], int *queryLen, int *selected,
     launchApp(top, *selected);
     return 0;
     system(top[0].exec);
-  } else if (key == KEY_UP) {
-    *selected = *selected < termRows - 3 ? *selected + 1 : 0;
+  } else if (key >= KEY_UP && key <= KEY_RIGHT) {
+    handleArrowKeyEvents(top, key, selected);
+    highlightSelected(*selected, top);
   } else if (isprint(key)) {
     if (*queryLen < 512) {
       *queryLen += 1;
@@ -558,9 +574,9 @@ void app() {
   struct applist appList;
 
   onStartUp(&appAmount, &appList);
-  int top_n = appAmount > termRows ? termRows : appAmount;
+  int top_n = appAmount > termRows - 3 ? termRows - 3 : appAmount;
 
-  Match *top = calloc((size_t)termRows, sizeof(Match));
+  Match *top = calloc((size_t)termRows - 3, sizeof(Match));
   search(top, query, &appList, appAmount, path, &top_n);
   printResults(top, top_n);
   highlightSelected(selected, top);
@@ -583,6 +599,7 @@ void app() {
 
     if (queryChanged(query, altquery)) {
       printQuery(query, queryLen);
+      selected = 0;
       top = search(top, query, &appList, appAmount, path, &top_n);
       printResults(top, top_n);
       highlightSelected(selected, top);
