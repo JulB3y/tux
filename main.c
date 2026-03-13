@@ -179,7 +179,7 @@ int contains(const char *s, const char *p) {
   return 0;
 }
 
-int fuzzyScore(const char *query, const char *name, const char *path) {
+int fuzzyScore(const char *query, const char *name, int queryLen) {
   int score = 0;
 
   if (strcasecmp(query, name) == 0)
@@ -191,14 +191,7 @@ int fuzzyScore(const char *query, const char *name, const char *path) {
   else if (isSubsequence(query, name))
     score += 100;
 
-  if (startsWith(path, query))
-    score += 40;
-  else if (contains(path, query))
-    score += 20;
-  else if (isSubsequence(query, path))
-    score += 10;
-
-  int len_diff = (int)strlen(name) - (int)strlen(query);
+  int len_diff = (int)strlen(name) - queryLen;
   if (len_diff < 0)
     len_diff = -len_diff;
   score -= len_diff;
@@ -421,16 +414,18 @@ void freeStorage(AppList appList) {
 }
 
 Match *search(Match *top, char *query, AppList appList, int appAmount,
-              char *path, int *top_n) {
+              int *top_n) {
   clearResUi();
   if (!top)
     return 0;
+
+  int queryLen = (int)strlen(query);
 
   for (int i = 0; i < appAmount; i++) {
     top[i].name = NULL;
     top[i].exec = NULL;
     top[i].score = 0;
-    int score = fuzzyScore(query, *(appList->nameList + i), path);
+    int score = fuzzyScore(query, *(appList->nameList + i), queryLen);
     tryInsertTop(top, *top_n, *(appList->nameList + i),
                  *(appList->execCmdList + i), score);
   }
@@ -570,7 +565,6 @@ void printQuery(char *query, int queryLen) {
 }
 
 void app() {
-  char *path = "/usr/share/applications/";
   char query[512] = {0};
   char altquery[512] = {0};
   int queryLen = 0;
@@ -583,7 +577,7 @@ void app() {
   int top_n = appAmount > termRows - 3 ? termRows - 3 : appAmount;
 
   Match *top = calloc((size_t)termRows - 3, sizeof(Match));
-  search(top, query, &appList, appAmount, path, &top_n);
+  search(top, query, &appList, appAmount, &top_n);
   printResults(top, top_n);
   highlightSelected(selected, top);
 
@@ -606,7 +600,7 @@ void app() {
     if (queryChanged(query, altquery)) {
       printQuery(query, queryLen);
       selected = 0;
-      top = search(top, query, &appList, appAmount, path, &top_n);
+      top = search(top, query, &appList, appAmount, &top_n);
       printResults(top, top_n);
       highlightSelected(selected, top);
     }
