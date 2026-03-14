@@ -13,8 +13,8 @@ A simple app launcher for Unix written in C
 - launches GUI apps from `.desktop` files
 
 ## todos
-- [ ] select results using arrow keys
-- [ ] update `app.dat` only when application entries change
+- [x] select results using arrow keys
+- [x] update `app.dat` only when application entries change
 
 ## installation
 you can find the package in the arch user repository and can install it through yay:

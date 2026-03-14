@@ -7,7 +7,9 @@
 
 #include <ctype.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -42,16 +44,18 @@ volatile sig_atomic_t resized = 0;
  */
 
 struct applist {
+  char *src;
+
+  char **pathList;
+  long *mtimeList;
   char **nameList;
-  char *nameSrc;
+  char **execCmdList;
 
   char **nameLowerList;
   char *nameLowerSrc;
 
-  char **execCmdList;
-  char *execSrc;
-
   int *nameLenList;
+  int count;
 };
 typedef struct applist *AppList;
 
@@ -99,7 +103,10 @@ void actRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-void handleWinch(int sig) { resized = 1; }
+void handleWinch(int sig) {
+  (void)sig;
+  resized = 1;
+}
 
 // get window size
 int getTermSize(int *rows, int *cols) {
@@ -348,116 +355,222 @@ void stripDesktopCodes(char *s) {
   *dst = '\0';
 }
 
-void writeToFile(FILE *appFile, FILE *execFile, char *appName, char *execCmd) {
-  stripDesktopCodes(execCmd);
-  fprintf(appFile, "%s\n", appName);
-  fprintf(execFile, "%s\n", execCmd);
+char *readCacheFile(const char *path, long *sizeOut) {
+  struct stat st;
+
+  if (stat(path, &st) != 0)
+    return NULL;
+
+  FILE *f = fopen(path, "r");
+  if (!f)
+    return NULL;
+
+  char *buf = malloc((size_t)st.st_size + 1);
+  if (!buf) {
+    fclose(f);
+    return NULL;
+  }
+
+  size_t n = fread(buf, 1, (size_t)st.st_size, f);
+  if (n != (size_t)st.st_size) {
+    free(buf);
+    fclose(f);
+    return NULL;
+  }
+  fclose(f);
+
+  buf[st.st_size] = '\0';
+
+  if (sizeOut)
+    *sizeOut = st.st_size;
+
+  return buf;
+}
+
+int countLines(const char *src) {
+  int n = 0;
+  if (!*src)
+    return 0;
+  while (*src) {
+    if (*src == '\n')
+      n++;
+    src++;
+  }
+  return src[-1] == '\n' ? n : n + 1;
+}
+
+int allocArrays(AppList a, int count, long fileSize) {
+
+  a->count = count;
+
+  a->pathList = malloc(sizeof(char *) * (size_t)count);
+  a->mtimeList = malloc(sizeof(long) * (size_t)count);
+  a->nameList = malloc(sizeof(char *) * (size_t)count);
+  a->execCmdList = malloc(sizeof(char *) * (size_t)count);
+
+  a->nameLowerList = malloc(sizeof(char *) * (size_t)count);
+  a->nameLowerSrc = malloc((size_t)fileSize + 1);
+
+  a->nameLenList = malloc(sizeof(int) * (size_t)count);
+
+  return a->pathList && a->mtimeList && a->nameList && a->execCmdList &&
+         a->nameLowerList && a->nameLowerSrc && a->nameLenList;
+}
+
+int split4(char *line, char **p, char **t, char **n, char **e) {
+
+  *p = line;
+
+  char *s = strchr(line, '\t');
+  if (!s)
+    return 0;
+  *s++ = '\0';
+
+  *t = s;
+
+  s = strchr(s, '\t');
+  if (!s)
+    return 0;
+  *s++ = '\0';
+
+  *n = s;
+
+  s = strchr(s, '\t');
+  if (!s)
+    return 0;
+  *s++ = '\0';
+
+  *e = s;
+
+  return 1;
+}
+
+int loadCache(const char *cachePath, AppList a) {
+
+  long fileSize = 0;
+  char *src = readCacheFile(cachePath, &fileSize);
+  if (!src)
+    return 0;
+
+  int count = countLines(src);
+
+  if (!allocArrays(a, count, fileSize)) {
+    free(src);
+    return 0;
+  }
+
+  a->src = src;
+
+  char *lower = a->nameLowerSrc;
+
+  int i = 0;
+  char *line = src;
+
+  while (*line && i < count) {
+
+    char *next = strchr(line, '\n');
+    if (next)
+      *next = '\0';
+
+    char *path, *mtimeStr, *name, *exec;
+
+    if (split4(line, &path, &mtimeStr, &name, &exec)) {
+
+      a->pathList[i] = path;
+
+      a->mtimeList[i] = strtol(mtimeStr, NULL, 10);
+
+      a->nameList[i] = name;
+      a->nameLenList[i] = (int)strlen(name);
+
+      a->execCmdList[i] = exec;
+
+      a->nameLowerList[i] = lower;
+      toLowerCopy(lower, name);
+      lower += strlen(lower) + 1;
+
+      i++;
+    }
+
+    if (!next)
+      break;
+
+    line = next + 1;
+  }
+
+  a->count = i;
+
+  return 1;
+}
+
+void writeToFile(FILE *cacheFile, const char *path, long mtime,
+                 const char *appName, const char *execCmd) {
+  char cleanedExec[512];
+  snprintf(cleanedExec, sizeof(cleanedExec), "%s", execCmd);
+  stripDesktopCodes(cleanedExec);
+
+  fprintf(cacheFile, "%s\t%ld\t%s\t%s\n", path, mtime, appName, cleanedExec);
 }
 
 // function that scans through applications path and finds all apps that have a
 // gui. returns amount of apps
-int writeAppDataFile(char *dataPath) {
-  char *path = "/usr/share/applications/";
+int writeAppDataFile(const char *dataPath) {
+  char path[] = "/usr/share/applications";
   DIR *dir;
   struct dirent *ent;
   int amount = 0;
 
-  char appName[256]; // string to store name value
-  char execCmd[256]; // string to store execution command of .desktop file
+  char appName[256];
+  char execCmd[256];
+  char desktopPath[512];
+
+  FILE *cacheFile = fopen(dataPath, "w");
+  if (!cacheFile)
+    return 0;
+
   char *token = strtok(path, ":");
-  FILE *appFile = openDataFile(dataPath, "app.dat", "w");
-  FILE *execFile = openDataFile(dataPath, "exec.dat", "w");
-  while (token != 0) {
-    if ((dir = opendir(token)) != NULL) {
+  while (token != NULL) {
+    dir = opendir(token);
+    if (dir != NULL) {
       while ((ent = readdir(dir)) != NULL) {
+        appName[0] = '\0';
+        execCmd[0] = '\0';
+
         if (getGUIApps(token, ent->d_name, appName, execCmd)) {
-          writeToFile(appFile, execFile, appName, execCmd);
+          snprintf(desktopPath, sizeof(desktopPath), "%s/%s", token,
+                   ent->d_name);
+
+          struct stat st;
+          long mtime = 0;
+          if (stat(desktopPath, &st) == 0)
+            mtime = (long)st.st_mtime;
+
+          writeToFile(cacheFile, desktopPath, mtime, appName, execCmd);
           amount++;
         }
       }
+      closedir(dir);
     }
     token = strtok(NULL, ":");
   }
-  fclose(appFile);
-  fclose(execFile);
+
+  fclose(cacheFile);
   return amount;
 }
 
-void writeAppList(char *dataPath, AppList appList, int *appAmount) {
-  FILE *appFile = openDataFile(dataPath, "app.dat", "r");
-  long appFileSize = getFileSize(dataPath, "app.dat");
-  FILE *execFile = openDataFile(dataPath, "exec.dat", "r");
-  long execFileSize = getFileSize(dataPath, "exec.dat");
+void freeStorage(AppList a) {
 
-  char *appLine = NULL;
-  size_t appSize = 0;
-  char *execLine = NULL;
-  size_t execSize = 0;
+  free(a->src);
 
-  char *names = malloc((size_t)appFileSize + 1);
-  char *namesLower = malloc((size_t)appFileSize + 1);
-  char **nameList = malloc(sizeof(char *) * (size_t)*appAmount);
-  char **nameLowerList = malloc(sizeof(char *) * (size_t)*appAmount);
-  int *nameLenList = malloc(sizeof(int) * (size_t)*appAmount);
+  free(a->pathList);
+  free(a->mtimeList);
+  free(a->nameList);
+  free(a->execCmdList);
 
-  char *execs = malloc((size_t)execFileSize + 1);
-  char **execList = malloc(sizeof(char *) * (size_t)*appAmount);
+  free(a->nameLowerList);
+  free(a->nameLowerSrc);
 
-  if (!names || !namesLower || !nameList || !nameLowerList || !nameLenList ||
-      !execs || !execList) {
-    return;
-  }
-
-  appList->nameList = nameList;
-  appList->nameSrc = names;
-  appList->nameLowerList = nameLowerList;
-  appList->nameLowerSrc = namesLower;
-  appList->nameLenList = nameLenList;
-  appList->execCmdList = execList;
-  appList->execSrc = execs;
-
-  char *a = names;
-  char *al = namesLower;
-  char *e = execs;
-
-  for (int i = 0;
-       i < *appAmount && getline(&appLine, &appSize, appFile) != -1 &&
-       getline(&execLine, &execSize, execFile) != -1;
-       i++) {
-    appLine[strcspn(appLine, "\n")] = '\0';
-    execLine[strcspn(execLine, "\n")] = '\0';
-
-    nameList[i] = a;
-    strcpy(a, appLine);
-    nameLenList[i] = (int)strlen(a);
-    a += nameLenList[i] + 1;
-
-    nameLowerList[i] = al;
-    toLowerCopy(al, appLine);
-    al += strlen(al) + 1;
-
-    execList[i] = e;
-    strcpy(e, execLine);
-    e += strlen(e) + 1;
-  }
-
-  free(appLine);
-  free(execLine);
-  fclose(appFile);
-  fclose(execFile);
-}
-
-void freeStorage(AppList appList) {
-  free(appList->nameList);
-  free(appList->nameSrc);
-
-  free(appList->nameLowerList);
-  free(appList->nameLowerSrc);
-
-  free(appList->nameLenList);
-
-  free(appList->execCmdList);
-  free(appList->execSrc);
+  free(a->nameLenList);
 }
 
 Match *search(Match *top, char *query, AppList appList, int appAmount,
@@ -533,24 +646,28 @@ void onStartUp(int *appAmount, AppList appList) {
   actRaw();
   actAltScr();
 
-  // Getting home and data path
   char *homePath = getenv("HOME");
-  char dataPath[512];
-  snprintf(dataPath, sizeof(dataPath), "%s/.local/share/tui-launcher/",
-           homePath);
+  char dataDir[502];
+  char cachePath[512];
+
+  snprintf(dataDir, sizeof(dataDir), "%s/.local/share/tux-launcher", homePath);
+  mkdir(dataDir, 0755);
+
+  snprintf(cachePath, sizeof(cachePath), "%s/cache.dat", dataDir);
 
   getTermSize(&termRows, &termCols);
-
   basicFrame();
-  // deactivate blocking behavior of read()
+
   int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 
-  // creating path
-  mkdir(dataPath, 0755);
+  if (!loadCache(cachePath, appList)) {
+    writeAppDataFile(cachePath);
+    if (!loadCache(cachePath, appList))
+      exit(1);
+  }
 
-  *appAmount = writeAppDataFile(dataPath);
-  writeAppList(dataPath, appList, appAmount);
+  *appAmount = appList->count;
 
   struct sigaction sa = {0};
   sa.sa_handler = handleWinch;
@@ -626,64 +743,99 @@ void printQuery(char *query, int queryLen) {
   ui_change = 1;
 }
 
-void app() {
+static int waitForInputOrSignal(void) {
+  struct pollfd pfd = {.fd = STDIN_FILENO, .events = POLLIN};
+
+  for (;;) {
+    int r = poll(&pfd, 1, -1);
+
+    if (r > 0)
+      return 1; // input da
+    if (r == 0)
+      continue; // bei -1 eigentlich unmöglich
+
+    if (errno == EINTR)
+      return 0; // signal, z.B. SIGWINCH
+    return -1;  // echter fehler
+  }
+}
+
+void app(void) {
   char query[512] = {0};
   char altquery[512] = {0};
   int queryLen = 0;
   int appAmount = 0;
   int selected = 0;
   int oldselc = 0;
-  struct applist appList;
+  struct applist appList = {0};
 
   onStartUp(&appAmount, &appList);
   int top_n = appAmount > termRows - 3 ? termRows - 3 : appAmount;
 
-  Match *top = calloc((size_t)termRows - 3, sizeof(Match));
+  Match *top = calloc((size_t)(termRows - 3), sizeof(Match));
   search(top, query, &appList, appAmount, &top_n);
   printResults(top, top_n);
   highlightSelected(selected, top);
+  fflush(stdout);
 
   for (;;) {
-    int key = readKey();
-
-    if (!keyProcessing(key, query, &queryLen, &selected, top)) {
-      freeStorage(&appList);
-      deactAltScr();
-      deactRaw();
+    int ev = waitForInputOrSignal();
+    if (ev < 0)
       break;
-    }
-
-    if (selected != oldselc) {
-      oldselc = selected;
-      printResults(top, top_n);
-      highlightSelected(selected, top);
-    }
-
-    if (queryChanged(query, altquery)) {
-      printQuery(query, queryLen);
-      selected = 0;
-      top = search(top, query, &appList, appAmount, &top_n);
-      printResults(top, top_n);
-      highlightSelected(selected, top);
-    }
 
     if (resized) {
       resized = 0;
-
       getTermSize(&termRows, &termCols);
       basicFrame();
+
+      int max_rows = termRows - 3;
+      if (max_rows < 0)
+        max_rows = 0;
+      top_n = appAmount > max_rows ? max_rows : appAmount;
+
+      top = realloc(top, (size_t)max_rows * sizeof(Match));
+      if (!top && max_rows > 0)
+        break;
+
+      search(top, query, &appList, appAmount, &top_n);
       printQuery(query, queryLen);
       printResults(top, top_n);
       highlightSelected(selected, top);
-    }
-
-    if (ui_change) {
       fflush(stdout);
-      ui_change = 0;
     }
 
-    usleep(1000);
+    if (ev == 1) {
+      int key = readKey(); // darf jetzt blockierend / halbblockierend sein
+      if (!keyProcessing(key, query, &queryLen, &selected, top)) {
+        break;
+      }
+
+      if (selected != oldselc) {
+        oldselc = selected;
+        printResults(top, top_n);
+        highlightSelected(selected, top);
+      }
+
+      if (queryChanged(query, altquery)) {
+        printQuery(query, queryLen);
+        selected = 0;
+        oldselc = 0;
+        top = search(top, query, &appList, appAmount, &top_n);
+        printResults(top, top_n);
+        highlightSelected(selected, top);
+      }
+
+      if (ui_change) {
+        fflush(stdout);
+        ui_change = 0;
+      }
+    }
   }
+
+  free(top);
+  freeStorage(&appList);
+  deactAltScr();
+  deactRaw();
 }
 
 int main() { app(); }
