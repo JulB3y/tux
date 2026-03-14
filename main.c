@@ -66,7 +66,12 @@ typedef struct {
   int score;
 } Match;
 
-enum { KEY_UP = 1000, KEY_DOWN, KEY_RIGHT, KEY_LEFT };
+enum {
+  KEY_UP = 1000,
+  KEY_DOWN,
+  KEY_RIGHT,
+  KEY_LEFT
+}; // map arrow key ESC-sequences to ints
 
 /*
  *
@@ -77,10 +82,16 @@ enum { KEY_UP = 1000, KEY_DOWN, KEY_RIGHT, KEY_LEFT };
 // sents ESC-sequences to stdout to activate alternative screen
 void actAltScr() { write(STDOUT_FILENO, "\x1b[?1049h\x1b[2J\x1b[H", 14); }
 
+// sents ESC-sequence to stdout to deactivate alt-screen
 void deactAltScr() { write(STDOUT_FILENO, "\x1b[?1049l", 8); }
 
+// deactivates raw mode
 void deactRaw() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig); }
 
+// Switches the terminal into raw mode for immediate, unprocessed keyboard
+// input. Saves current terminal settings in `orig` so they can be restored
+// later. input is read byte-by-byte without line buffering or echo, and common
+// terminal-generated signals and translations are disabled.
 void actRaw() {
   struct termios raw;
 
@@ -104,9 +115,11 @@ void actRaw() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+// signal handler for SIGWINCH (window size change)
+// marks terminal as resized
 void handleWinch(int sig) {
-  (void)sig;
-  resized = 1;
+  (void)sig;   // unused parameter
+  resized = 1; // flag checked in main event loop
 }
 
 // get window size
@@ -121,13 +134,18 @@ int getTermSize(int *rows, int *cols) {
   return 1;
 }
 
+// reads single key from stdin
+// handles regular characters and ANSI ESC-sequences (e.g. arrow keys)
 int readKey() {
   char c;
 
+  // reads key + error handling
   if (read(STDIN_FILENO, &c, 1) != 1)
     return -1;
 
+  // handler for ESC-sequences
   if (c == '\x1b') {
+    // determine if esc is part of multi-byte sequence
     struct pollfd pfd = {.fd = STDIN_FILENO, .events = POLLIN};
 
     int r = poll(&pfd, 1, 25);
