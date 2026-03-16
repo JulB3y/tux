@@ -6,11 +6,13 @@ A simple app launcher for Unix written in C
 > feel free to test the app and report any bugs you encounter
 
 ## features
+- works on Linux and MacOS
 - fast fuzzy search
 - no dependencies
 - own terminal screen handler (no ncurses)
-- scans `/usr/share/applications/` for desktop entries
+- scans `/usr/share/applications/` for desktop entries or MacOS paths
 - launches GUI apps from `.desktop` files
+
 
 ## todos
 - [x] select results using arrow keys
@@ -37,4 +39,9 @@ sudo make install
 Remove it from your system
 ```bash
 sudo make uninstall
+```
+
+## Credits
+Thanks for contributing to my project:
+- [HenryLoM](https://github.com/HenryLoM) for adding MacOS support
 ```
