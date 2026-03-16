@@ -1,8 +1,14 @@
 CC = gcc
 
+UNAME := $(shell uname)
+
 CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude
 DEBUGFLAGS = -g -O0 -fsanitize=address,undefined
 RELEASEFLAGS = -O2
+
+ifeq ($(UNAME),Darwin)
+CFLAGS += -D_DARWIN_C_SOURCE
+endif
 
 TARGET = tux
 SRC = $(wildcard src/*.c)
