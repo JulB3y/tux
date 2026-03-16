@@ -1,11 +1,11 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion
+CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude
 DEBUGFLAGS = -g -O0 -fsanitize=address,undefined
 RELEASEFLAGS = -O2
 
 TARGET = tux
-SRC = main.c
+SRC = $(wildcard src/*.c)
 
 debug: $(SRC)
 	$(CC) $(SRC) -o $(TARGET)-debug $(CFLAGS) $(DEBUGFLAGS)
