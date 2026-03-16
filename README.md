@@ -44,4 +44,3 @@ sudo make uninstall
 ## Credits
 Thanks for contributing to my project:
 - [HenryLoM](https://github.com/HenryLoM) for adding MacOS support
-```
