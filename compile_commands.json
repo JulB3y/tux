@@ -1,0 +1,134 @@
+[
+  {
+    "file": "src/app.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/app.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/cache.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/cache.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/exec.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/exec.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/file.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/file.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/fuzzy.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/fuzzy.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/input.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/input.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/main.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/main.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/search.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/search.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/term.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/term.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/ui.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/ui.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  },
+  {
+    "file": "src/util.c",
+    "arguments": [
+      "gcc",
+      "-Iinclude",
+      "src/util.c",
+      "-o",
+      "tux"
+    ],
+    "directory": "/home/julbey/Repos/tux-launcher",
+    "output": "tux"
+  }
+]

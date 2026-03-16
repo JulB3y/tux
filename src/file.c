@@ -96,9 +96,57 @@ long getDirMTime(const char *path) {
   return (long)st.st_mtime;
 }
 
+static int writeMacDataFile(const char *cachePath) {
+  const char *appsDirs[] = {"/Applications", "/System/Applications", NULL};
+
+  FILE *cacheFile = fopen(cachePath, "w");
+  if (!cacheFile)
+    return 0;
+
+  int amount = 0;
+
+  for (int d = 0; appsDirs[d]; d++) {
+    DIR *dir = opendir(appsDirs[d]);
+    if (!dir)
+      continue;
+
+    struct dirent *ent;
+
+    while ((ent = readdir(dir))) {
+
+      if (!strstr(ent->d_name, ".app"))
+        continue;
+
+      char fullPath[512];
+      snprintf(fullPath, sizeof(fullPath), "%s/%s", appsDirs[d], ent->d_name);
+
+      struct stat st;
+      long mtime = 0;
+
+      if (stat(fullPath, &st) == 0)
+        mtime = (long)st.st_mtime;
+
+      char name[256];
+      snprintf(name, sizeof(name), "%s", ent->d_name);
+
+      char execCmd[512];
+      snprintf(execCmd, sizeof(execCmd), "open -a \"%s\"", name);
+
+      fprintf(cacheFile, "%s\t%ld\t%s\t%s\n", fullPath, mtime, name, execCmd);
+
+      amount++;
+    }
+
+    closedir(dir);
+  }
+
+  fclose(cacheFile);
+  return amount;
+}
+
 // function that scans through applications path and finds all apps that have a
 // gui. returns amount of apps
-int writeAppDataFile(const char *dataPath) {
+static int writeLinuxDataFile(const char *dataPath) {
   char path[] = "/usr/share/applications";
   DIR *dir;
   struct dirent *ent;
@@ -140,4 +188,12 @@ int writeAppDataFile(const char *dataPath) {
 
   fclose(cacheFile);
   return amount;
+}
+
+int writeAppDataFile(const char *dataPath) {
+#if defined(__APPLE__) && defined(__MACH__)
+  return writeMacDataFile(dataPath);
+#else
+  return writeLinuxDataFile(dataPath);
+#endif
 }

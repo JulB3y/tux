@@ -71,6 +71,7 @@ App *app_init() {
   fcntl(STDIN_FILENO, F_SETFL, flags);
 
   const char *appsDir = "/usr/share/applications/";
+
   long currentDirMTime = getDirMTime(appsDir);
   long cachedDirMTime = readMetaFile(metaPath);
 

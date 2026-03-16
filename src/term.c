@@ -4,9 +4,11 @@
 
 #include "types.h"
 
-void actAltScreen() { write(STDOUT_FILENO, "\x1b[?1049h\x1b[2J\x1b[H", 14); }
+void actAltScreen(void) {
+  write(STDOUT_FILENO, "\x1b[?1049h\x1b[2J\x1b[H", 14);
+}
 
-void deactAltScreen() { write(STDOUT_FILENO, "\x1b[?1049l", 8); }
+void deactAltScreen(void) { write(STDOUT_FILENO, "\x1b[?1049l", 8); }
 
 void deactRaw(App *app) {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &app->term.orig_termios);
