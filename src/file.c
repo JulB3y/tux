@@ -128,9 +128,12 @@ static int writeMacDataFile(const char *cachePath) {
 
       char name[256];
       snprintf(name, sizeof(name), "%s", ent->d_name);
+      char *p = strstr(name, ".app");
+      if (p)
+        *p = '\0';
 
       char execCmd[512];
-      snprintf(execCmd, sizeof(execCmd), "open -a \"%s\"", name);
+      snprintf(execCmd, sizeof(execCmd), "open \"%s\"", fullPath);
 
       fprintf(cacheFile, "%s\t%ld\t%s\t%s\n", fullPath, mtime, name, execCmd);
 
