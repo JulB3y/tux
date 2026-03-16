@@ -14,9 +14,16 @@ A simple app launcher for Unix written in C
 - launches GUI apps from `.desktop` files
 
 
-## todos
-- [x] select results using arrow keys
-- [x] update `app.dat` only when application entries change
+## roadmap
+(development not in order)
+- [ ] adding calculator functionality
+- [ ] providing user config
+    - [ ] style options
+    - [ ] color options
+    - [ ] custom paths
+- [ ] searching and opening files
+- [ ] open web with query
+- [ ] execute quick shell cmds
 
 ## installation
 you can find the package in the arch user repository and can install it through yay:
