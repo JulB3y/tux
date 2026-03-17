@@ -1,20 +1,18 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <signal.h>
 #include <termios.h>
 
 typedef struct {
   int rows;
   int cols;
-  volatile sig_atomic_t resized;
   struct termios orig_termios;
 } TermState;
 
 typedef struct {
   char query[512];
-  char prev_query[512];
   int query_len;
+  int query_changed;
   int selected;
   int old_selected;
   int ui_changed;

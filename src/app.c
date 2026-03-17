@@ -162,10 +162,12 @@ void app_run(App *app) {
         highlightSelected(app->top, app->ui.selected, &app->term);
       }
 
-      if (queryChanged(app->ui.query, app->ui.prev_query)) {
-        printQuery(&app->ui, &app->term);
+      if (app->ui.query_changed) {
+        app->ui.query_changed = 0;
         app->ui.selected = 0;
         app->ui.old_selected = 0;
+
+        printQuery(&app->ui, &app->term);
         search(app);
         printResults(app);
         highlightSelected(app->top, app->ui.selected, &app->term);

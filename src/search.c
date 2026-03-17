@@ -52,25 +52,25 @@ static void sortTop(Match *top, int top_n) {
     }
   }
 }
-int queryChanged(char *query, char *altquery) {
-  if (strcmp(query, altquery) != 0) {
-    strcpy(altquery, query);
-    return 1;
+
+static void emptyTop(Match *top, int top_n) {
+  for (int i = 0; i < top_n; i++) {
+    top[i].name = NULL;
+    top[i].exec = NULL;
+    top[i].score = 0;
   }
-  return 0;
 }
+
+// void handleQuery(char *query, int query_len) {}
 
 int search(App *app) {
   clearResUi(app);
   if (!app->top)
     return 0;
 
-  for (int i = 0; i < app->top_n; i++) {
-    app->top[i].name = NULL;
-    app->top[i].exec = NULL;
-    app->top[i].score = 0;
-  }
+  emptyTop(app->top, app->top_n);
 
+  // handling empty query -> putting first entries of nameList into top
   if (app->ui.query[0] == '\0') {
     for (int i = 0; i < app->top_n; i++) {
       app->top[i].name = app->apps.nameList[i];
@@ -82,11 +82,10 @@ int search(App *app) {
 
   char queryLower[512];
   toLowerCopy(queryLower, app->ui.query);
-  int queryLen = (int)strlen(queryLower);
 
   for (int i = 0; i < app->app_count; i++) {
-    int score = fuzzyScore(queryLower, app->apps.nameLowerList[i], queryLen,
-                           app->apps.nameLenList[i]);
+    int score = fuzzyScore(queryLower, app->apps.nameLowerList[i],
+                           app->ui.query_len, app->apps.nameLenList[i]);
 
     tryInsertTop(app->top, app->top_n, app->apps.nameList[i],
                  app->apps.execCmdList[i], score);

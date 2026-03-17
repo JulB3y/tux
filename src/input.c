@@ -100,8 +100,10 @@ int keyProcessing(int key, UIState *ui, Match *top, int top_n,
     }
     return 0;
   } else if (key == 127 || key == 8) { // backspace
-    if (ui->query_len > 0)
+    if (ui->query_len > 0) {
       ui->query[--ui->query_len] = '\0';
+      ui->query_changed = 1;
+    }
   } else if (key == '\r' || key == '\n') {
     launchApp(top[ui->selected].exec);
     return 0;
@@ -113,6 +115,7 @@ int keyProcessing(int key, UIState *ui, Match *top, int top_n,
       ui->query_len += 1;
       ui->query[ui->query_len - 1] = (char)key;
       ui->query[ui->query_len] = '\0';
+      ui->query_changed = 1;
     }
   }
 
