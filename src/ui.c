@@ -1,6 +1,54 @@
+#include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "types.h"
+
+static void printf_cols(int cols, const char *fmt, ...) {
+  if (cols <= 0)
+    return;
+
+  va_list args;
+  va_start(args, fmt);
+
+  va_list copy;
+  va_copy(copy, args);
+  int len = vsnprintf(NULL, 0, fmt, copy);
+  va_end(copy);
+
+  if (len < 0) {
+    va_end(args);
+    return;
+  }
+
+  char *buf = malloc((size_t)len + 1);
+  if (!buf) {
+    va_end(args);
+    return;
+  }
+
+  vsnprintf(buf, (size_t)len + 1, fmt, args);
+  va_end(args);
+
+  int visible = 0;
+  for (int i = 0; buf[i] != '\0' && visible < cols;) {
+    if (buf[i] == '\x1b' && buf[i + 1] == '[') {
+      putchar(buf[i++]); // ESC
+      putchar(buf[i++]); // [
+      while (buf[i] && buf[i] != 'm') {
+        putchar(buf[i++]);
+      }
+      if (buf[i] == 'm') {
+        putchar(buf[i++]);
+      }
+    } else {
+      putchar(buf[i++]);
+      visible++;
+    }
+  }
+
+  free(buf);
+}
 
 void clearResUi(int rows) {
   for (int i = rows - 3; i > 0; i--)
@@ -14,7 +62,7 @@ void basicFrame(int *ui_changed, TermState *term) {
   for (int i = 0; i < termCols - 2; i++)
     printf("─");
   printf("╮");
-  printf("\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
+  printf_cols(term->cols, "\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
   printf("\x1b[%d;%dH│", termRows - 1, termCols);
   printf("\x1b[%d;1H╰", termRows);
   for (int i = 2; i < termCols; i++)
@@ -24,10 +72,10 @@ void basicFrame(int *ui_changed, TermState *term) {
   *ui_changed = 1;
 }
 
-void printResults(int rows, Match *top, int top_n) {
+void printResults(int rows, int cols, Match *top, int top_n) {
   for (int i = 0; i < top_n; i++) {
     if (top[i].score > 0) {
-      printf("\x1b[%d;0H %s ", rows - 3 - i, top[i].name);
+      printf_cols(cols, "\x1b[%d;0H %s ", rows - 3 - i, top[i].name);
     }
   }
 }
@@ -38,7 +86,7 @@ void printQuery(UIState *ui, TermState *term) {
   int termRows = term->rows;
   int termCols = term->cols;
   if (query[0] == 0) {
-    printf("\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
+    printf_cols(term->cols, "\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
   } else {
 
     printf("\x1b[%d;%dH\x1b[2K│ %.*s", termRows - 1, 1, termCols - 4,
@@ -54,7 +102,8 @@ void printQuery(UIState *ui, TermState *term) {
 void highlightSelected(Match *top, int selected, TermState *term) {
   printf("\x1b[%d;1H", term->rows - 3 - selected);
   if (top[0].score != 0)
-    printf("\x1b[48;2;100;100;100m %s \x1b[0m", top[selected].name);
+    printf_cols(term->cols, "\x1b[48;2;100;100;100m %s ", top[selected].name);
   else if (top[0].score == 0)
-    printf("\x1b[38;2;100;100;100m %s \x1b[0m", "no result");
+    printf_cols(term->cols, "\x1b[38;2;100;100;100m %s ", "no result");
+  printf("\x1b[0m");
 }

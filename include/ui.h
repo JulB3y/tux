@@ -5,7 +5,7 @@
 
 void clearResUi(int rows);
 void basicFrame(int *ui_changed, TermState *term);
-void printResults(int rows, Match *top, int top_n);
+void printResults(int rows, int cols, Match *top, int top_n);
 void highlightSelected(Match *top, int selected, TermState *term);
 void printQuery(UIState *ui, TermState *term);
 

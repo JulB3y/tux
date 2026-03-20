@@ -119,7 +119,7 @@ void app_run(App *app) {
 
   app->top = calloc((size_t)(*termRows - 3), sizeof(Match));
   search(app);
-  printResults(*termRows, app->top, app->top_n);
+  printResults(*termRows, app->term.cols, app->top, app->top_n);
   highlightSelected(app->top, app->ui.selected, &app->term);
   fflush(stdout);
 
@@ -144,7 +144,7 @@ void app_run(App *app) {
       app->top = tmp;
 
       search(app);
-      printResults(*termRows, app->top, app->top_n);
+      printResults(*termRows, app->term.cols, app->top, app->top_n);
       highlightSelected(app->top, app->ui.selected, &app->term);
       printQuery(&app->ui, &app->term);
       fflush(stdout);
@@ -158,7 +158,7 @@ void app_run(App *app) {
 
       if (app->ui.selected != app->ui.old_selected) {
         app->ui.old_selected = app->ui.selected;
-        printResults(*termRows, app->top, app->top_n);
+        printResults(*termRows, app->term.cols, app->top, app->top_n);
         highlightSelected(app->top, app->ui.selected, &app->term);
       }
 
@@ -168,7 +168,7 @@ void app_run(App *app) {
         app->ui.old_selected = 0;
 
         search(app);
-        printResults(*termRows, app->top, app->top_n);
+        printResults(*termRows, app->term.cols, app->top, app->top_n);
         highlightSelected(app->top, app->ui.selected, &app->term);
         printQuery(&app->ui, &app->term);
       }
@@ -182,6 +182,5 @@ void app_run(App *app) {
 
   free(app->top);
   freeStorage(&app->apps);
-  deactAltScreen();
-  deactRaw(app);
+  app_shutdown(app);
 }
