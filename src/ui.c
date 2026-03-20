@@ -56,5 +56,5 @@ void highlightSelected(Match *top, int selected, TermState *term) {
   if (top[0].score != 0)
     printf("\x1b[48;2;100;100;100m %s \x1b[0m", top[selected].name);
   else if (top[0].score == 0)
-    printf("\033[38;2;100;100;100m %s \x1b[0m", "no result");
+    printf("\x1b[38;2;100;100;100m %s \x1b[0m", "no result");
 }

@@ -144,9 +144,9 @@ void app_run(App *app) {
       app->top = tmp;
 
       search(app);
-      printQuery(&app->ui, &app->term);
       printResults(app);
       highlightSelected(app->top, app->ui.selected, &app->term);
+      printQuery(&app->ui, &app->term);
       fflush(stdout);
     }
 
@@ -167,10 +167,10 @@ void app_run(App *app) {
         app->ui.selected = 0;
         app->ui.old_selected = 0;
 
-        printQuery(&app->ui, &app->term);
         search(app);
         printResults(app);
         highlightSelected(app->top, app->ui.selected, &app->term);
+        printQuery(&app->ui, &app->term);
       }
 
       if (app->ui.ui_changed) {
