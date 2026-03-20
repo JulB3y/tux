@@ -1,6 +1,5 @@
 #include <dirent.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -96,6 +95,7 @@ long getDirMTime(const char *path) {
   return (long)st.st_mtime;
 }
 
+#if defined(__APPLE__) && defined(__MACH__)
 static int writeMacDataFile(const char *cachePath) {
   const char *appsDirs[] = {"/Applications", "/System/Applications", NULL};
 
@@ -146,7 +146,7 @@ static int writeMacDataFile(const char *cachePath) {
   fclose(cacheFile);
   return amount;
 }
-
+#else
 // function that scans through applications path and finds all apps that have a
 // gui. returns amount of apps
 static int writeLinuxDataFile(const char *dataPath) {
@@ -192,6 +192,7 @@ static int writeLinuxDataFile(const char *dataPath) {
   fclose(cacheFile);
   return amount;
 }
+#endif
 
 int writeAppDataFile(const char *dataPath) {
 #if defined(__APPLE__) && defined(__MACH__)

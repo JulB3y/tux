@@ -64,7 +64,7 @@ static void emptyTop(Match *top, int top_n) {
 // void handleQuery(char *query, int query_len) {}
 
 int search(App *app) {
-  clearResUi(app);
+  clearResUi(app->term.rows);
   if (!app->top)
     return 0;
 

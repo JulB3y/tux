@@ -65,7 +65,7 @@ App *app_init() {
   snprintf(metaPath, sizeof(metaPath), "%s/cache.meta", dataDir);
 
   getTermSize(app);
-  basicFrame(app);
+  basicFrame(&app->ui.ui_changed, &app->term);
 
   int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, flags);
@@ -119,7 +119,7 @@ void app_run(App *app) {
 
   app->top = calloc((size_t)(*termRows - 3), sizeof(Match));
   search(app);
-  printResults(app);
+  printResults(*termRows, app->top, app->top_n);
   highlightSelected(app->top, app->ui.selected, &app->term);
   fflush(stdout);
 
@@ -131,7 +131,7 @@ void app_run(App *app) {
     if (resized) {
       resized = 0;
       getTermSize(app);
-      basicFrame(app);
+      basicFrame(&app->ui.ui_changed, &app->term);
 
       int max_rows = *termRows - 3;
       if (max_rows < 0)
@@ -144,7 +144,7 @@ void app_run(App *app) {
       app->top = tmp;
 
       search(app);
-      printResults(app);
+      printResults(*termRows, app->top, app->top_n);
       highlightSelected(app->top, app->ui.selected, &app->term);
       printQuery(&app->ui, &app->term);
       fflush(stdout);
@@ -152,13 +152,13 @@ void app_run(App *app) {
 
     if (ev == 1) {
       int key = readKey(app); // darf jetzt blockierend / halbblockierend sein
-      if (!keyProcessing(key, &app->ui, app->top, app->top_n, &app->term)) {
+      if (!keyProcessing(key, &app->ui, app->top, &app->term)) {
         break;
       }
 
       if (app->ui.selected != app->ui.old_selected) {
         app->ui.old_selected = app->ui.selected;
-        printResults(app);
+        printResults(*termRows, app->top, app->top_n);
         highlightSelected(app->top, app->ui.selected, &app->term);
       }
 
@@ -168,7 +168,7 @@ void app_run(App *app) {
         app->ui.old_selected = 0;
 
         search(app);
-        printResults(app);
+        printResults(*termRows, app->top, app->top_n);
         highlightSelected(app->top, app->ui.selected, &app->term);
         printQuery(&app->ui, &app->term);
       }

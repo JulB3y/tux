@@ -64,12 +64,16 @@ int readKey(App *app) {
   return c;
 }
 
-static void handleArrowKeyEvents(int key, UIState *ui, int top_n) {
-  int *selected = &ui->selected;
+static void handleArrowKeyEvents(int key, UIState *ui, Match *top) {
   if (key == KEY_UP) {
-    *selected = *selected + 1 < top_n ? *selected + 1 : *selected;
+    int next = ui->selected + 1;
+    if (top[next].score != 0) {
+      ui->selected = next;
+    }
   } else if (key == KEY_DOWN) {
-    *selected = *selected > 0 ? *selected - 1 : *selected;
+    if (ui->selected > 0) {
+      ui->selected--;
+    }
   }
 }
 
@@ -90,8 +94,7 @@ int waitForInputOrSignal(void) {
   }
 }
 
-int keyProcessing(int key, UIState *ui, Match *top, int top_n,
-                  TermState *term) {
+int keyProcessing(int key, UIState *ui, Match *top, TermState *term) {
   if (key == 27) { // ESC
     if (ui->query_len > 0) {
       for (; ui->query_len >= 0; (ui->query_len)--)
@@ -108,7 +111,7 @@ int keyProcessing(int key, UIState *ui, Match *top, int top_n,
     launchApp(top[ui->selected].exec);
     return 0;
   } else if (key >= KEY_UP && key <= KEY_RIGHT) {
-    handleArrowKeyEvents(key, ui, top_n);
+    handleArrowKeyEvents(key, ui, top);
     highlightSelected(top, ui->selected, term);
   } else if (isprint(key)) {
     if (ui->query_len < 512) {

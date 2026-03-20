@@ -2,14 +2,14 @@
 
 #include "types.h"
 
-void clearResUi(App *app) {
-  for (int i = app->term.rows - 3; i > 0; i--)
+void clearResUi(int rows) {
+  for (int i = rows - 3; i > 0; i--)
     printf("\x1b[%d;1H\x1b[2K", i);
 }
 
-void basicFrame(App *app) {
-  int termRows = app->term.rows;
-  int termCols = app->term.cols;
+void basicFrame(int *ui_changed, TermState *term) {
+  int termRows = term->rows;
+  int termCols = term->cols;
   printf("\x1b[%d;1H╭", termRows - 2);
   for (int i = 0; i < termCols - 2; i++)
     printf("─");
@@ -20,14 +20,14 @@ void basicFrame(App *app) {
   for (int i = 2; i < termCols; i++)
     printf("─");
   printf("╯");
-  clearResUi(app);
-  app->ui.ui_changed = 1;
+  clearResUi(term->rows);
+  *ui_changed = 1;
 }
 
-void printResults(App *app) {
-  for (int i = 0; i < app->top_n; i++) {
-    if (app->top[i].score > 0) {
-      printf("\x1b[%d;0H %s ", app->term.rows - 3 - i, app->top[i].name);
+void printResults(int rows, Match *top, int top_n) {
+  for (int i = 0; i < top_n; i++) {
+    if (top[i].score > 0) {
+      printf("\x1b[%d;0H %s ", rows - 3 - i, top[i].name);
     }
   }
 }

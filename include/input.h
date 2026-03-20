@@ -5,5 +5,5 @@
 
 int readKey(App *app);
 int waitForInputOrSignal(void);
-int keyProcessing(int key, UIState *ui, Match *top, int top_n, TermState *term);
+int keyProcessing(int key, UIState *ui, Match *top, TermState *term);
 #endif
