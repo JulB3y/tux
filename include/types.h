@@ -14,6 +14,7 @@ typedef struct {
   char query[128];
   char query_lower[128];
   int query_len;
+  int cursor_pos;
   int query_changed;
   int selected;
   int scroll_offset;

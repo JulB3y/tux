@@ -119,15 +119,19 @@ int keyProcessing(App *app, int key) {
       ui->query[0] = '\0';
       ui->query_lower[0] = '\0';
       ui->query_len = 0;
+      ui->cursor_pos = 0;
       ui->query_changed = 1;
       return 1;
     }
     return 0;
   } else if (key == 127 || key == 8) { // backspace
-    if (ui->query_len > 0) {
+    if (ui->cursor_pos > 0) {
+      for (int i = ui->cursor_pos - 1; i < ui->query_len; i++) {
+        ui->query[i] = ui->query[i + 1];
+        ui->query_lower[i] = ui->query_lower[i + 1];
+      }
       ui->query_len--;
-      ui->query[ui->query_len] = '\0';
-      ui->query_lower[ui->query_len] = '\0';
+      ui->cursor_pos--;
       ui->query_changed = 1;
     }
   } else if (key == '\r' || key == '\n') {
@@ -137,7 +141,17 @@ int keyProcessing(App *app, int key) {
     }
     launchApp(top[ui->selected].exec);
     return 0;
-  } else if (key >= KEY_UP && key <= KEY_RIGHT) {
+  } else if (key == KEY_LEFT) {
+    if (ui->cursor_pos > 0) {
+      ui->cursor_pos--;
+      ui->ui_changed = 1;
+    }
+  } else if (key == KEY_RIGHT) {
+    if (ui->cursor_pos < ui->query_len) {
+      ui->cursor_pos++;
+      ui->ui_changed = 1;
+    }
+  } else if (key == KEY_UP || key == KEY_DOWN) {
     int needs_lazy_load = 0;
     handleArrowKeyEvents(key, ui, app->top_n, max_rows, &needs_lazy_load);
 
@@ -158,12 +172,15 @@ int keyProcessing(App *app, int key) {
       ui->ui_changed = 1;
     }
   } else if (isprint(key)) {
-    if (ui->query_len < 511) {
-      ui->query[ui->query_len] = (char)key;
-      ui->query[ui->query_len + 1] = '\0';
-      ui->query_lower[ui->query_len] = (char)tolower((unsigned char)key);
-      ui->query_lower[ui->query_len + 1] = '\0';
+    if (ui->query_len < 127) {
+      for (int i = ui->query_len; i > ui->cursor_pos; i--) {
+        ui->query[i] = ui->query[i - 1];
+        ui->query_lower[i] = ui->query_lower[i - 1];
+      }
+      ui->query[ui->cursor_pos] = (char)key;
+      ui->query_lower[ui->cursor_pos] = (char)tolower((unsigned char)key);
       ui->query_len++;
+      ui->cursor_pos++;
       ui->query_changed = 1;
     }
   }

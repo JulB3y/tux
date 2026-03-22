@@ -108,6 +108,7 @@ static void printMode(const char *mode, TermState *term) {
 void printQuery(UIState *ui, TermState *term) {
   char *query = ui->query;
   int queryLen = ui->query_len;
+  int cursorPos = ui->cursor_pos;
   char *calc_result = ui->calc_result;
   char *mode = ui->mode;
   int termRows = term->rows;
@@ -133,6 +134,12 @@ void printQuery(UIState *ui, TermState *term) {
     printf("\x1b[%d;%dH", termRows - 1, 3);
   } else {
     int visible_len = queryLen > termCols - 5 ? termCols - 5 : queryLen;
-    printf("\x1b[%d;%dH", termRows - 1, visible_len + 3);
+    int visible_offset = queryLen > termCols - 5 ? queryLen - termCols + 5 : 0;
+    int adjusted_cursor = cursorPos - visible_offset;
+    if (adjusted_cursor < 0)
+      adjusted_cursor = 0;
+    if (adjusted_cursor > visible_len)
+      adjusted_cursor = visible_len;
+    printf("\x1b[%d;%dH", termRows - 1, adjusted_cursor + 3);
   }
 }

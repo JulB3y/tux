@@ -169,6 +169,7 @@ void app_run(App *app) {
   app->ui.selected = 0;
   app->ui.scroll_offset = 0;
   app->ui.calc_result[0] = '\0';
+  app->ui.cursor_pos = 0;
   strcpy(app->ui.mode, "apps");
   app->search_limit = max_rows * 2;
   if (app->search_limit < 10)
