@@ -3,6 +3,6 @@
 
 #include "types.h"
 
-int search(App *app);
+int search(App *app, int limit);
 
 #endif

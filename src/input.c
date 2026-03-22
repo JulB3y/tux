@@ -5,6 +5,7 @@
 
 #include "exec.h"
 #include "input.h"
+#include "search.h"
 #include "types.h"
 
 enum {
@@ -62,13 +63,18 @@ int readKey(void) {
   return c;
 }
 
-static void handleArrowKeyEvents(int key, UIState *ui, int top_n, int max_rows) {
+static void handleArrowKeyEvents(int key, UIState *ui, int top_n, int max_rows, int *needs_lazy_load) {
   if (key == KEY_UP) {
     if (ui->selected < top_n - 1) {
       ui->selected++;
       if (ui->selected - ui->scroll_offset >= max_rows) {
         ui->scroll_offset++;
       }
+      if (ui->selected >= top_n - 3) {
+        *needs_lazy_load = 1;
+      }
+    } else if (ui->selected == top_n - 1) {
+      *needs_lazy_load = 1;
     }
   } else if (key == KEY_DOWN) {
     if (ui->selected > 0) {
@@ -125,7 +131,23 @@ int keyProcessing(App *app, int key) {
     launchApp(top[ui->selected].exec);
     return 0;
   } else if (key >= KEY_UP && key <= KEY_RIGHT) {
-    handleArrowKeyEvents(key, ui, app->top_n, max_rows);
+    int needs_lazy_load = 0;
+    handleArrowKeyEvents(key, ui, app->top_n, max_rows, &needs_lazy_load);
+
+    if (needs_lazy_load && app->has_more_results) {
+      app->search_limit *= 2;
+      if (app->search_limit > app->app_count)
+        app->search_limit = app->app_count;
+
+      int old_selected = app->ui.selected;
+
+      search(app, app->search_limit);
+
+      app->ui.selected = old_selected;
+      app->ui.old_selected = old_selected;
+
+      ui->ui_changed = 1;
+    }
   } else if (isprint(key)) {
     if (ui->query_len < 511) {
       ui->query[ui->query_len] = (char)key;

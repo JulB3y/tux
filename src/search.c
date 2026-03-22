@@ -78,10 +78,13 @@ static void sortTopN(Match *top, int n) {
   }
 }
 
-int search(App *app) {
+int search(App *app, int limit) {
   clearResUi(app->term.rows);
   if (!app->top)
     return 0;
+
+  if (limit <= 0)
+    limit = app->search_limit;
 
   int max_rows = app->term.rows - 3;
   if (max_rows < 0)
@@ -90,23 +93,27 @@ int search(App *app) {
   int result_count = 0;
 
   if (app->ui.query[0] == '\0') {
-    for (int i = 0; i < app->app_count; i++) {
+    for (int i = 0; i < app->app_count && i < limit; i++) {
       app->top[i].name = app->apps.nameList[i];
       app->top[i].exec = app->apps.execCmdList[i];
       app->top[i].score = 1;
       result_count++;
     }
+    app->has_more_results = (result_count < app->app_count);
   } else {
     MinHeap heap = {0};
     heap.data = app->top;
-    heap.capacity = max_rows > 0 ? max_rows : 1;
+    heap.capacity = limit;
     heap.size = 0;
+
+    int total_matches = 0;
 
     for (int i = 0; i < app->app_count; i++) {
       int score = fuzzyScore(app->ui.query_lower, app->apps.nameLowerList[i],
                              app->ui.query_len, app->apps.nameLenList[i]);
 
       if (score > 0) {
+        total_matches++;
         Match match = {app->apps.nameList[i], app->apps.execCmdList[i], score};
 
         if (heap.size < heap.capacity) {
@@ -120,6 +127,7 @@ int search(App *app) {
 
     sortTopN(app->top, heap.size);
     result_count = heap.size;
+    app->has_more_results = (total_matches > limit);
   }
 
   app->top_n = result_count;

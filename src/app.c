@@ -123,9 +123,12 @@ void app_run(App *app) {
   app->top_n = app->app_count;
   app->ui.selected = 0;
   app->ui.scroll_offset = 0;
+  app->search_limit = max_rows * 2;
+  if (app->search_limit < 10)
+    app->search_limit = 10;
 
   app->top = calloc((size_t)app->app_count, sizeof(Match));
-  search(app);
+  search(app, app->search_limit);
   printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
   highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
   fflush(stdout);
@@ -144,7 +147,7 @@ void app_run(App *app) {
       if (max_rows < 0)
         max_rows = 0;
 
-      search(app);
+      search(app, app->search_limit);
       printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
       highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
       printQuery(&app->ui, &app->term);
@@ -169,14 +172,20 @@ void app_run(App *app) {
         app->ui.selected = 0;
         app->ui.old_selected = 0;
         app->ui.scroll_offset = 0;
+        app->search_limit = max_rows * 2;
+        if (app->search_limit < 10)
+          app->search_limit = 10;
 
-        search(app);
+        search(app, app->search_limit);
         printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
         highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
         printQuery(&app->ui, &app->term);
       }
 
       if (app->ui.ui_changed) {
+        printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        printQuery(&app->ui, &app->term);
         fflush(stdout);
         app->ui.ui_changed = 0;
       }

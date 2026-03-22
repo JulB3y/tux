@@ -49,6 +49,8 @@ typedef struct {
   Match *top;
   int top_n;
   int app_count;
+  int search_limit;
+  int has_more_results;
 } App;
 
 #endif
