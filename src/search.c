@@ -1,19 +1,9 @@
-#include <dirent.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <stdarg.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <termios.h>
-#include <unistd.h>
+#include <stddef.h>
 
 #include "fuzzy.h"
 #include "search.h"
 #include "types.h"
 #include "ui.h"
-#include "util.h"
 
 static void sortTop(Match *top, int top_n) {
   for (int i = 0; i < top_n; i++) {

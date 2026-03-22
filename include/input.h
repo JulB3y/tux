@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-int readKey(App *app);
+int readKey(void);
 int waitForInputOrSignal(void);
 int keyProcessing(App *app, int key);
 #endif

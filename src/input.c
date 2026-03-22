@@ -6,7 +6,6 @@
 #include "exec.h"
 #include "input.h"
 #include "types.h"
-#include "ui.h"
 
 enum {
   KEY_UP = 1000,
@@ -15,7 +14,7 @@ enum {
   KEY_LEFT
 }; // map arrow key ESC-sequences to ints
 
-int readKey(App *app) {
+int readKey(void) {
   char c;
 
   // reads key + error handling
@@ -45,16 +44,12 @@ int readKey(App *app) {
     if (seq[0] == '[') {
       switch (seq[1]) {
       case 'A':
-        app->ui.ui_changed = 1;
         return KEY_UP;
       case 'B':
-        app->ui.ui_changed = 1;
         return KEY_DOWN;
       case 'C':
-        app->ui.ui_changed = 1;
         return KEY_RIGHT;
       case 'D':
-        app->ui.ui_changed = 1;
         return KEY_LEFT;
       default:
         break;
@@ -67,8 +62,7 @@ int readKey(App *app) {
   return c;
 }
 
-static void handleArrowKeyEvents(int key, UIState *ui, Match *top, int top_n, int max_rows) {
-  (void)top;
+static void handleArrowKeyEvents(int key, UIState *ui, int top_n, int max_rows) {
   if (key == KEY_UP) {
     if (ui->selected < top_n - 1) {
       ui->selected++;
@@ -131,8 +125,7 @@ int keyProcessing(App *app, int key) {
     launchApp(top[ui->selected].exec);
     return 0;
   } else if (key >= KEY_UP && key <= KEY_RIGHT) {
-    handleArrowKeyEvents(key, ui, top, app->top_n, max_rows);
-    highlightSelected(top, ui->selected, ui->scroll_offset, term, max_rows);
+    handleArrowKeyEvents(key, ui, app->top_n, max_rows);
   } else if (isprint(key)) {
     if (ui->query_len < 511) {
       ui->query[ui->query_len] = (char)key;

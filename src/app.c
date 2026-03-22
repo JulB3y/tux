@@ -152,7 +152,7 @@ void app_run(App *app) {
     }
 
     if (ev == 1) {
-      int key = readKey(app); // darf jetzt blockierend / halbblockierend sein
+      int key = readKey();
       if (!keyProcessing(app, key)) {
         break;
       }
@@ -161,6 +161,7 @@ void app_run(App *app) {
         app->ui.old_selected = app->ui.selected;
         printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
         highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        fflush(stdout);
       }
 
       if (app->ui.query_changed) {

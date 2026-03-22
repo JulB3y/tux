@@ -4,6 +4,5 @@
 #include "types.h"
 
 int search(App *app);
-int queryChanged(char *query, char *altquery);
 
 #endif
