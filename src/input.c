@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <poll.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "exec.h"
@@ -138,6 +139,8 @@ int keyProcessing(App *app, int key) {
       app->search_limit *= 2;
       if (app->search_limit > app->app_count)
         app->search_limit = app->app_count;
+
+      app->top = realloc(app->top, (size_t)app->search_limit * sizeof(Match));
 
       int old_selected = app->ui.selected;
 

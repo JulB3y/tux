@@ -2,8 +2,7 @@
 #define TYPES_H
 
 #include <termios.h>
-
-typedef struct Config Config;
+#include "config.h"
 
 typedef struct {
   int rows;
@@ -12,8 +11,8 @@ typedef struct {
 } TermState;
 
 typedef struct {
-  char query[512];
-  char query_lower[512];
+  char query[128];
+  char query_lower[128];
   int query_len;
   int query_changed;
   int selected;
@@ -22,8 +21,15 @@ typedef struct {
   int ui_changed;
 } UIState;
 
+typedef struct app_keywords {
+  char **keywords;
+  int keyword_count;
+} AppKeywords;
+
 typedef struct applist {
   char *src;
+  int src_is_mmaped;
+  long src_size;
 
   char **pathList;
   long *mtimeList;
@@ -35,6 +41,8 @@ typedef struct applist {
 
   int *nameLenList;
   int count;
+
+  AppKeywords *keywords;
 } AppList;
 
 typedef struct {

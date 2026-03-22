@@ -8,6 +8,9 @@
 
 #include "config.h"
 
+#define INITIAL_CAPACITY 8
+#define INITIAL_POOL_SIZE 4096
+
 static char *trim_whitespace(char *str) {
   while (isspace((unsigned char)*str))
     str++;
@@ -17,6 +20,15 @@ static char *trim_whitespace(char *str) {
     end--;
 
   *(end + 1) = '\0';
+  return str;
+}
+
+static char *remove_quotes(char *str) {
+  size_t len = strlen(str);
+  if (len >= 2 && str[0] == '"' && str[len - 1] == '"') {
+    str[len - 1] = '\0';
+    return str + 1;
+  }
   return str;
 }
 
@@ -42,11 +54,50 @@ static char *read_file(const char *path) {
   return content;
 }
 
+static void tolower_str(char *str) {
+  for (; *str; str++)
+    *str = (char)tolower((unsigned char)*str);
+}
+
+static char *pool_strdup(Config *config, const char *str) {
+  size_t len = strlen(str) + 1;
+
+  if (config->pool_size + len > config->pool_capacity) {
+    size_t new_capacity = config->pool_capacity * 2;
+    while (config->pool_size + len > new_capacity)
+      new_capacity *= 2;
+
+    char *new_pool = realloc(config->string_pool, new_capacity);
+    if (!new_pool)
+      return NULL;
+
+    config->string_pool = new_pool;
+    config->pool_capacity = new_capacity;
+  }
+
+  char *result = config->string_pool + config->pool_size;
+  memcpy(result, str, len);
+  config->pool_size += len;
+
+  return result;
+}
+
 static void add_config(Config *config, const char *app_name) {
-  config->configs = realloc(config->configs, (size_t)(config->config_count + 1) * sizeof(AppConfig));
-  config->configs[config->config_count].app_name = strdup(app_name);
+  if (config->config_count >= config->config_capacity) {
+    int new_capacity = config->config_capacity == 0 ? INITIAL_CAPACITY : config->config_capacity * 2;
+    config->configs = realloc(config->configs, (size_t)new_capacity * sizeof(AppConfig));
+    config->config_capacity = new_capacity;
+  }
+
+  char app_lower[256];
+  strncpy(app_lower, app_name, sizeof(app_lower) - 1);
+  app_lower[sizeof(app_lower) - 1] = '\0';
+  tolower_str(app_lower);
+
+  config->configs[config->config_count].app_name = pool_strdup(config, app_lower);
   config->configs[config->config_count].keywords = NULL;
   config->configs[config->config_count].keyword_count = 0;
+  config->configs[config->config_count].keyword_capacity = 0;
   config->config_count++;
 }
 
@@ -55,14 +106,15 @@ static void add_keyword(Config *config, const char *keyword) {
     return;
 
   AppConfig *app = &config->configs[config->config_count - 1];
-  app->keywords = realloc(app->keywords, (size_t)(app->keyword_count + 1) * sizeof(char *));
-  app->keywords[app->keyword_count] = strdup(keyword);
-  app->keyword_count++;
-}
 
-static void tolower_str(char *str) {
-  for (; *str; str++)
-    *str = (char)tolower((unsigned char)*str);
+  if (app->keyword_count >= app->keyword_capacity) {
+    int new_capacity = app->keyword_capacity == 0 ? INITIAL_CAPACITY : app->keyword_capacity * 2;
+    app->keywords = realloc(app->keywords, (size_t)new_capacity * sizeof(char *));
+    app->keyword_capacity = new_capacity;
+  }
+
+  app->keywords[app->keyword_count] = pool_strdup(config, keyword);
+  app->keyword_count++;
 }
 
 static void parse_array(char *value, Config *config) {
@@ -78,20 +130,21 @@ static void parse_array(char *value, Config *config) {
   char *token = strtok(start, ",");
   while (token) {
     char *trimmed = trim_whitespace(token);
-    char *unquoted = trimmed;
+    char keyword_copy[256];
+    size_t trimmed_len = strlen(trimmed);
 
-    if (trimmed[0] == '"' && trimmed[strlen(trimmed) - 1] == '"') {
-      unquoted = strdup(trimmed + 1);
-      unquoted[strlen(unquoted) - 1] = '\0';
-      tolower_str(unquoted);
-      add_keyword(config, unquoted);
-      free(unquoted);
-    } else {
-      char *lower = strdup(trimmed);
-      tolower_str(lower);
-      add_keyword(config, lower);
-      free(lower);
+    strncpy(keyword_copy, trimmed, sizeof(keyword_copy) - 1);
+    keyword_copy[sizeof(keyword_copy) - 1] = '\0';
+
+    char *keyword_to_add = keyword_copy;
+
+    if (keyword_copy[0] == '"' && trimmed_len > 1 && keyword_copy[trimmed_len - 1] == '"') {
+      keyword_copy[trimmed_len - 1] = '\0';
+      keyword_to_add = keyword_copy + 1;
     }
+
+    tolower_str(keyword_to_add);
+    add_keyword(config, keyword_to_add);
 
     token = strtok(NULL, ",");
   }
@@ -101,6 +154,15 @@ Config *config_init() {
   Config *config = malloc(sizeof(Config));
   config->configs = NULL;
   config->config_count = 0;
+  config->config_capacity = 0;
+  config->string_pool = malloc(INITIAL_POOL_SIZE);
+  config->pool_size = 0;
+  config->pool_capacity = INITIAL_POOL_SIZE;
+
+  if (!config->string_pool) {
+    free(config);
+    return NULL;
+  }
 
   char *home = getenv("HOME");
   if (!home) {
@@ -150,7 +212,17 @@ Config *config_init() {
             if (dot && dot < eq) {
               *dot = '\0';
               *eq = '\0';
-              char *app_name = trim_whitespace(line_copy2);
+              char *trimmed_app_name = trim_whitespace(line_copy2);
+
+              int has_quotes = (trimmed_app_name[0] == '"' &&
+                               trimmed_app_name[strlen(trimmed_app_name) - 1] == '"');
+
+              if (strchr(trimmed_app_name, ' ') && !has_quotes) {
+                line = strtok_r(NULL, "\n", &saveptr);
+                continue;
+              }
+
+              char *app_name = remove_quotes(trim_whitespace(line_copy2));
               char *key = trim_whitespace(dot + 1);
 
               if (strcmp(key, "keywords") == 0) {
@@ -179,97 +251,29 @@ void config_free(Config *config) {
   if (!config)
     return;
 
-  for (int i = 0; i < config->config_count; i++) {
-    free(config->configs[i].app_name);
-    for (int j = 0; j < config->configs[i].keyword_count; j++) {
-      free(config->configs[i].keywords[j]);
-    }
-    free(config->configs[i].keywords);
-  }
-
+  free(config->string_pool);
   free(config->configs);
   free(config);
 }
 
-static int startsWithLower(const char *s, const char *prefix) {
-  while (*prefix && *s) {
-    if (*s != *prefix)
-      return 0;
-    s++;
-    prefix++;
+char **config_get_keywords(Config *config, const char *app_name, int *keyword_count) {
+  if (!config || !app_name || !keyword_count) {
+    *keyword_count = 0;
+    return NULL;
   }
-  return *prefix == '\0';
-}
-
-static int containsLower(const char *haystack, const char *needle) {
-  if (!*needle)
-    return 1;
-
-  while (*haystack) {
-    const char *h = haystack;
-    const char *n = needle;
-
-    while (*h && *n && *h == *n) {
-      h++;
-      n++;
-    }
-
-    if (!*n)
-      return 1;
-
-    haystack++;
-  }
-
-  return 0;
-}
-
-static int isSubsequenceLower(const char *q, const char *s) {
-  while (*q && *s) {
-    if (*q == *s)
-      q++;
-    s++;
-  }
-  return *q == '\0';
-}
-
-int config_get_keyword_score(Config *config, const char *app_name, const char *query_lower, int query_len) {
-  if (!config)
-    return 0;
 
   char app_lower[256];
   strncpy(app_lower, app_name, sizeof(app_lower) - 1);
   app_lower[sizeof(app_lower) - 1] = '\0';
-  for (char *p = app_lower; *p; p++)
-    *p = (char)tolower((unsigned char)*p);
-
-  int best_score = 0;
+  tolower_str(app_lower);
 
   for (int i = 0; i < config->config_count; i++) {
     if (strcmp(config->configs[i].app_name, app_lower) == 0) {
-      for (int j = 0; j < config->configs[i].keyword_count; j++) {
-        const char *keyword = config->configs[i].keywords[j];
-        int keyword_len = (int)strlen(keyword);
-        int keyword_score = 0;
-
-        if (strcmp(query_lower, keyword) == 0)
-          keyword_score += 1000;
-        else if (startsWithLower(keyword, query_lower))
-          keyword_score += 300;
-        else if (containsLower(keyword, query_lower))
-          keyword_score += 180;
-        else if (isSubsequenceLower(query_lower, keyword))
-          keyword_score += 100;
-
-        int len_diff = keyword_len - query_len;
-        if (len_diff < 0)
-          len_diff = -len_diff;
-        keyword_score -= len_diff;
-
-        if (keyword_score > best_score)
-          best_score = keyword_score;
-      }
+      *keyword_count = config->configs[i].keyword_count;
+      return config->configs[i].keywords;
     }
   }
 
-  return best_score;
+  *keyword_count = 0;
+  return NULL;
 }

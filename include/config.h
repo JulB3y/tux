@@ -1,21 +1,28 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stddef.h>
+
 typedef struct {
   char *app_name;
   char **keywords;
   int keyword_count;
+  int keyword_capacity;
 } AppConfig;
 
-struct Config {
+typedef struct {
+  char *string_pool;
+  size_t pool_size;
+  size_t pool_capacity;
+
   AppConfig *configs;
   int config_count;
-};
-
-typedef struct Config Config;
+  int config_capacity;
+} Config;
 
 Config *config_init();
 void config_free(Config *config);
-int config_get_keyword_score(Config *config, const char *app_name, const char *query_lower, int query_len);
+
+char **config_get_keywords(Config *config, const char *app_name, int *keyword_count);
 
 #endif

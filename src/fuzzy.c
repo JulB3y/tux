@@ -1,6 +1,5 @@
 #include <string.h>
 
-#include "config.h"
 #include "fuzzy.h"
 
 static int isSubsequenceLower(const char *q, const char *s) {
@@ -44,23 +43,45 @@ static int containsLower(const char *haystack, const char *needle) {
   return 0;
 }
 
-int fuzzyScore(Config *config, const char *app_name, const char *queryLower,
-               const char *nameLower, int queryLen, int nameLen) {
-  int score = 0;
-
+int fuzzyScore(const char **keywords, int keyword_count,
+               const char *queryLower, const char *nameLower,
+               int queryLen, int nameLen) {
   if (queryLen == 0)
     return 1;
 
   if (strcmp(queryLower, nameLower) == 0)
-    score += 1000;
-  else if (startsWithLower(nameLower, queryLower))
-    score += 300;
-  else if (containsLower(nameLower, queryLower))
-    score += 180;
-  else if (isSubsequenceLower(queryLower, nameLower))
-    score += 100;
+    return 1000;
+  if (startsWithLower(nameLower, queryLower))
+    return 300;
+  if (containsLower(nameLower, queryLower))
+    return 180;
+  if (isSubsequenceLower(queryLower, nameLower))
+    return 100;
 
-  score += config_get_keyword_score(config, app_name, queryLower, queryLen);
+  int score = 0;
+
+  for (int i = 0; i < keyword_count; i++) {
+    const char *keyword = keywords[i];
+    int keyword_len = (int)strlen(keyword);
+    int keyword_score = 0;
+
+    if (strcmp(queryLower, keyword) == 0)
+      keyword_score += 1000;
+    else if (startsWithLower(keyword, queryLower))
+      keyword_score += 300;
+    else if (containsLower(keyword, queryLower))
+      keyword_score += 180;
+    else if (isSubsequenceLower(queryLower, keyword))
+      keyword_score += 100;
+
+    int len_diff = keyword_len - queryLen;
+    if (len_diff < 0)
+      len_diff = -len_diff;
+    keyword_score -= len_diff;
+
+    if (keyword_score > 0 && keyword_score > score)
+      score = keyword_score;
+  }
 
   int len_diff = nameLen - queryLen;
   if (len_diff < 0)

@@ -19,6 +19,10 @@ A fast, dependency-free app launcher for Unix systems written in C.
 - no external libraries
 - caching for instant startup
 - lazy loading of search results
+- optimized memory usage with smart allocations
+- efficient string matching with early returns
+- qsort-based result sorting for O(n log n) complexity
+- memory-mapped file I/O for large cache files
 
 ### Technical
 - Works on Linux and macOS
@@ -63,6 +67,37 @@ sudo chmod +x /usr/local/bin/tux
 
 ## Usage
 
+### Configuration
+
+Tux supports custom configuration to add keywords for applications. Create a configuration file at `~/.config/tux/config.toml`:
+
+```toml
+[apps]
+firefox.keywords = ["browser", "web"]
+visual-studio-code.keywords = ["code", "editor", "ide"]
+blender.keywords = ["3d", "modeling"]
+"visual studio code".keywords = ["code", "editor"]
+```
+
+Both quoted and unquoted app names are supported:
+```toml
+[apps]
+firefox.keywords = ["browser", "web"]
+"firefox".keywords = ["browser", "web"]
+```
+
+**Important:** App names containing spaces MUST be quoted:
+```toml
+[apps]
+# ✅ Valid - quoted
+"visual studio code".keywords = ["code", "editor"]
+
+# ❌ Invalid - must use quotes
+visual studio code.keywords = ["code", "editor"]
+```
+
+**Note:** Keywords are case-insensitive and will be matched when searching. You can use alternative names or aliases for applications to make them easier to find.
+
 ### Keyboard Shortcuts
 
 | Key | Action |
@@ -78,6 +113,7 @@ sudo chmod +x /usr/local/bin/tux
 
 - [ ] Calculator functionality
 - [ ] User configuration
+  - [x] Custom keywords for apps
   - [ ] Style options
   - [ ] Color schemes
   - [ ] Custom app paths

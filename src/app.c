@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -34,7 +35,10 @@ static void handleWinch(int sig) {
 
 static void freeStorage(AppList *a) {
 
-  free(a->src);
+  if (a->src_is_mmaped)
+    munmap(a->src, (size_t)a->src_size + 1);
+  else
+    free(a->src);
 
   free(a->pathList);
   free(a->mtimeList);
@@ -45,6 +49,18 @@ static void freeStorage(AppList *a) {
   free(a->nameLowerSrc);
 
   free(a->nameLenList);
+
+  if (a->keywords) {
+    for (int i = 0; i < a->count; i++) {
+      if (a->keywords[i].keywords) {
+        for (int j = 0; j < a->keywords[i].keyword_count; j++) {
+          free(a->keywords[i].keywords[j]);
+        }
+        free(a->keywords[i].keywords);
+      }
+    }
+    free(a->keywords);
+  }
 }
 
 App *app_init() {
@@ -107,6 +123,31 @@ App *app_init() {
   app->app_count = appList->count;
   app->config = config_init();
 
+  if (app->config && appList->count > 0) {
+    appList->keywords = calloc((size_t)appList->count, sizeof(AppKeywords));
+
+    int has_keywords = 0;
+    for (int i = 0; i < appList->count; i++) {
+      int keyword_count = 0;
+      char **keywords = config_get_keywords(app->config, appList->nameList[i], &keyword_count);
+
+      if (keywords && keyword_count > 0) {
+        has_keywords = 1;
+        appList->keywords[i].keyword_count = keyword_count;
+        appList->keywords[i].keywords = malloc((size_t)keyword_count * sizeof(char *));
+
+        for (int j = 0; j < keyword_count; j++) {
+          appList->keywords[i].keywords[j] = strdup(keywords[j]);
+        }
+      }
+    }
+
+    if (!has_keywords) {
+      free(appList->keywords);
+      appList->keywords = NULL;
+    }
+  }
+
   return app;
 }
 
@@ -129,7 +170,7 @@ void app_run(App *app) {
   if (app->search_limit < 10)
     app->search_limit = 10;
 
-  app->top = calloc((size_t)app->app_count, sizeof(Match));
+  app->top = malloc((size_t)app->search_limit * sizeof(Match));
   search(app, app->search_limit);
   printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
   highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);

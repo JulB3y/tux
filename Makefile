@@ -11,7 +11,7 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude \
          -Wlogical-op -Wswitch-default -Wbad-function-cast \
          -Wnonnull -Wvla
 DEBUGFLAGS = -g -O0 -fsanitize=address,undefined
-RELEASEFLAGS = -O2
+RELEASEFLAGS = -O3 -flto -march=native
 
 ifeq ($(UNAME),Darwin)
 CFLAGS += -D_DARWIN_C_SOURCE

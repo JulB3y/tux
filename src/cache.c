@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "cache.h"
 #include "types.h"
@@ -87,6 +89,26 @@ static char *readCacheFile(const char *path, long *sizeOut) {
   if (stat(path, &st) != 0)
     return NULL;
 
+  if (st.st_size > 1024 * 1024) {
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+      return NULL;
+
+    char *buf = mmap(NULL, (size_t)st.st_size + 1, PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE, fd, 0);
+    close(fd);
+
+    if (buf == MAP_FAILED)
+      return NULL;
+
+    buf[st.st_size] = '\0';
+
+    if (sizeOut)
+      *sizeOut = st.st_size;
+
+    return buf;
+  }
+
   FILE *f = fopen(path, "r");
   if (!f)
     return NULL;
@@ -123,11 +145,16 @@ int loadCache(const char *cachePath, AppList *a) {
   int count = countLines(src);
 
   if (!allocArrays(a, count, fileSize)) {
-    free(src);
+    if (fileSize > 1024 * 1024)
+      munmap(src, (size_t)fileSize + 1);
+    else
+      free(src);
     return 0;
   }
 
   a->src = src;
+  a->src_is_mmaped = fileSize > 1024 * 1024;
+  a->src_size = fileSize;
 
   char *lower = a->nameLowerSrc;
 
@@ -149,13 +176,14 @@ int loadCache(const char *cachePath, AppList *a) {
       a->mtimeList[i] = strtol(mtimeStr, NULL, 10);
 
       a->nameList[i] = name;
-      a->nameLenList[i] = (int)strlen(name);
+      int nameLen = (int)strlen(name);
+      a->nameLenList[i] = nameLen;
 
       a->execCmdList[i] = exec;
 
       a->nameLowerList[i] = lower;
       toLowerCopy(lower, name);
-      lower += strlen(lower) + 1;
+      lower += nameLen + 1;
 
       i++;
     }

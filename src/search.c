@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdlib.h>
 
 #include "config.h"
 #include "fuzzy.h"
@@ -67,16 +68,14 @@ static void heap_replace_min(MinHeap *heap, Match match) {
   heapify_down(heap, 0);
 }
 
+static int compare_match(const void *a, const void *b) {
+  const Match *match_a = (const Match *)a;
+  const Match *match_b = (const Match *)b;
+  return match_b->score - match_a->score;
+}
+
 static void sortTopN(Match *top, int n) {
-  for (int i = 0; i < n; i++) {
-    for (int j = i + 1; j < n; j++) {
-      if (top[j].score > top[i].score) {
-        Match tmp = top[i];
-        top[i] = top[j];
-        top[j] = tmp;
-      }
-    }
-  }
+  qsort(top, (size_t)n, sizeof(Match), compare_match);
 }
 
 int search(App *app, int limit) {
@@ -110,7 +109,10 @@ int search(App *app, int limit) {
     int total_matches = 0;
 
     for (int i = 0; i < app->app_count; i++) {
-      int score = fuzzyScore(app->config, app->apps.nameList[i], app->ui.query_lower,
+      int keyword_count = app->apps.keywords ? app->apps.keywords[i].keyword_count : 0;
+      char **keywords = app->apps.keywords ? app->apps.keywords[i].keywords : NULL;
+
+      int score = fuzzyScore((const char **)keywords, keyword_count, app->ui.query_lower,
                              app->apps.nameLowerList[i], app->ui.query_len,
                              app->apps.nameLenList[i]);
 
