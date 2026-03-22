@@ -97,10 +97,15 @@ int waitForInputOrSignal(void) {
   }
 }
 
-int keyProcessing(int key, UIState *ui, Match *top, TermState *term) {
+int keyProcessing(App *app, int key) {
+  UIState *ui = &app->ui;
+  Match *top = app->top;
+  TermState *term = &app->term;
+
   if (key == 27) { // ESC
     if (ui->query_len > 0) {
       ui->query[0] = '\0';
+      ui->query_lower[0] = '\0';
       ui->query_len = 0;
       ui->query_changed = 1;
       return 1;
@@ -108,7 +113,9 @@ int keyProcessing(int key, UIState *ui, Match *top, TermState *term) {
     return 0;
   } else if (key == 127 || key == 8) { // backspace
     if (ui->query_len > 0) {
-      ui->query[--ui->query_len] = '\0';
+      ui->query_len--;
+      ui->query[ui->query_len] = '\0';
+      ui->query_lower[ui->query_len] = '\0';
       ui->query_changed = 1;
     }
   } else if (key == '\r' || key == '\n') {
@@ -118,10 +125,12 @@ int keyProcessing(int key, UIState *ui, Match *top, TermState *term) {
     handleArrowKeyEvents(key, ui, top);
     highlightSelected(top, ui->selected, term);
   } else if (isprint(key)) {
-    if (ui->query_len < 512) {
-      ui->query_len += 1;
-      ui->query[ui->query_len - 1] = (char)key;
-      ui->query[ui->query_len] = '\0';
+    if (ui->query_len < 511) {
+      ui->query[ui->query_len] = (char)key;
+      ui->query[ui->query_len + 1] = '\0';
+      ui->query_lower[ui->query_len] = (char)tolower((unsigned char)key);
+      ui->query_lower[ui->query_len + 1] = '\0';
+      ui->query_len++;
       ui->query_changed = 1;
     }
   }

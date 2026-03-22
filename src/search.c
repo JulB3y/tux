@@ -81,11 +81,8 @@ int search(App *app) {
     return 1;
   }
 
-  char queryLower[512];
-  toLowerCopy(queryLower, app->ui.query);
-
   for (int i = 0; i < app->app_count; i++) {
-    int score = fuzzyScore(queryLower, app->apps.nameLowerList[i],
+    int score = fuzzyScore(app->ui.query_lower, app->apps.nameLowerList[i],
                            app->ui.query_len, app->apps.nameLenList[i]);
 
     tryInsertTop(app->top, app->top_n, app->apps.nameList[i],

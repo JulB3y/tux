@@ -153,7 +153,7 @@ void app_run(App *app) {
 
     if (ev == 1) {
       int key = readKey(app); // darf jetzt blockierend / halbblockierend sein
-      if (!keyProcessing(key, &app->ui, app->top, &app->term)) {
+      if (!keyProcessing(app, key)) {
         break;
       }
 

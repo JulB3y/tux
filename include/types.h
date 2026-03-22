@@ -11,6 +11,7 @@ typedef struct {
 
 typedef struct {
   char query[512];
+  char query_lower[512];
   int query_len;
   int query_changed;
   int selected;
