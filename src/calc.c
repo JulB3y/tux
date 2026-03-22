@@ -199,12 +199,6 @@ static int needsImplicitMultiplication(TokenType prev, TokenType current) {
   if (prev == TOKEN_RPAREN && current == TOKEN_FUNCTION) {
     return 1;
   }
-  if (prev == TOKEN_FUNCTION && current == TOKEN_LPAREN) {
-    return 1;
-  }
-  if (prev == TOKEN_NUMBER && current == TOKEN_FUNCTION) {
-    return 1;
-  }
 
   return 0;
 }
