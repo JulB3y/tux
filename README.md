@@ -24,10 +24,20 @@ A fast, dependency-free app launcher for Unix systems written in C.
 - qsort-based result sorting for O(n log n) complexity
 - memory-mapped file I/O for large cache files
 
+### Calculator
+- Built-in calculator with automatic equation detection
+- Supports basic operations: `+`, `-`, `*`, `/`, `^` (power)
+- Parentheses for grouping: `(1+2)*3`
+- Mathematical functions: `sqrt()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`
+- Implicit multiplication: `2(1+3)` → `8`
+- Real-time results displayed inline with query
+- Copy results to clipboard with Enter
+
 ### Technical
 - Works on Linux and macOS
 - custom TUI (no ncurses)
 - scans `/usr/share/applications/` for `.desktop` entries
+- Modular query system for extensibility
 
 ---
 
@@ -98,20 +108,49 @@ visual studio code.keywords = ["code", "editor"]
 
 **Note:** Keywords are case-insensitive and will be matched when searching. You can use alternative names or aliases for applications to make them easier to find.
 
+### Calculator
+
+Tux automatically switches to calculator mode when you type mathematical expressions:
+
+```bash
+# Basic operations
+1+1                    → 2
+2*3+4                  → 10
+(1+2)*3                → 9
+2^10                   → 1024
+
+# Functions
+sqrt(16)               → 4
+sin(3.14)              → ~0
+log(10)                → 2.3026
+
+# Implicit multiplication
+2(1+3)                → 8
+4(2+3)                 → 20
+```
+
+**Features:**
+- Automatic detection: Calculator activates when operators, parentheses, or functions are detected
+- Real-time results: See the calculation result as you type
+- Copy to clipboard: Press Enter to copy the result to your clipboard
+- Supports: `+`, `-`, `*`, `/`, `^`, `()`, `sqrt()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`
+
+**Note:** Calculator mode only activates when the query contains mathematical operators, parentheses, or functions. Otherwise, it searches for applications as usual.
+
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
 | `Arrow Up` | Move selection up |
 | `Arrow Down` | Move selection down |
-| `Enter` | Launch selected app |
+| `Enter` | Launch selected app / Copy calc result to clipboard |
 | `Escape` | Clear query / Exit |
 
 ## Roadmap
 
 *(Development not necessarily in order)*
 
-- [ ] Calculator functionality
+- [x] Calculator functionality
 - [ ] User configuration
   - [x] Custom keywords for apps
   - [ ] Style options
@@ -130,8 +169,13 @@ visual studio code.keywords = ["code", "editor"]
 ```
 tux-launcher/
 ├── include/          # Header files
+│   ├── query.h      # Query parsing and dispatching
+│   ├── calc.h       # Calculator functionality
+│   └── ...
 ├── src/             # Source code
 │   ├── app.c        # Application lifecycle
+│   ├── query.c      # Query parser and dispatcher
+│   ├── calc.c       # Calculator implementation
 │   ├── search.c     # Search algorithms
 │   ├── fuzzy.c      # Fuzzy matching
 │   ├── cache.c      # Caching system
