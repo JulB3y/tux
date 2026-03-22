@@ -116,12 +116,18 @@ static void app_shutdown(App *app) {
 void app_run(App *app) {
 
   int *termRows = &app->term.rows;
-  app->top_n = app->app_count > *termRows - 3 ? *termRows - 3 : app->app_count;
+  int max_rows = *termRows - 3;
+  if (max_rows < 0)
+    max_rows = 0;
 
-  app->top = calloc((size_t)(*termRows - 3), sizeof(Match));
+  app->top_n = app->app_count;
+  app->ui.selected = 0;
+  app->ui.scroll_offset = 0;
+
+  app->top = calloc((size_t)app->app_count, sizeof(Match));
   search(app);
-  printResults(*termRows, app->term.cols, app->top, app->top_n);
-  highlightSelected(app->top, app->ui.selected, &app->term);
+  printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+  highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
   fflush(stdout);
 
   for (;;) {
@@ -134,19 +140,13 @@ void app_run(App *app) {
       getTermSize(app);
       basicFrame(&app->ui.ui_changed, &app->term);
 
-      int max_rows = *termRows - 3;
+      max_rows = *termRows - 3;
       if (max_rows < 0)
         max_rows = 0;
-      app->top_n = app->app_count > max_rows ? max_rows : app->app_count;
-
-      Match *tmp = realloc(app->top, (size_t)max_rows * sizeof(Match));
-      if (!tmp && max_rows > 0)
-        break;
-      app->top = tmp;
 
       search(app);
-      printResults(*termRows, app->term.cols, app->top, app->top_n);
-      highlightSelected(app->top, app->ui.selected, &app->term);
+      printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+      highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
       printQuery(&app->ui, &app->term);
       fflush(stdout);
     }
@@ -159,18 +159,19 @@ void app_run(App *app) {
 
       if (app->ui.selected != app->ui.old_selected) {
         app->ui.old_selected = app->ui.selected;
-        printResults(*termRows, app->term.cols, app->top, app->top_n);
-        highlightSelected(app->top, app->ui.selected, &app->term);
+        printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
       }
 
       if (app->ui.query_changed) {
         app->ui.query_changed = 0;
         app->ui.selected = 0;
         app->ui.old_selected = 0;
+        app->ui.scroll_offset = 0;
 
         search(app);
-        printResults(*termRows, app->term.cols, app->top, app->top_n);
-        highlightSelected(app->top, app->ui.selected, &app->term);
+        printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
         printQuery(&app->ui, &app->term);
       }
 

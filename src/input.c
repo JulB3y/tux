@@ -67,15 +67,21 @@ int readKey(App *app) {
   return c;
 }
 
-static void handleArrowKeyEvents(int key, UIState *ui, Match *top) {
+static void handleArrowKeyEvents(int key, UIState *ui, Match *top, int top_n, int max_rows) {
+  (void)top;
   if (key == KEY_UP) {
-    int next = ui->selected + 1;
-    if (top[next].score != 0) {
-      ui->selected = next;
+    if (ui->selected < top_n - 1) {
+      ui->selected++;
+      if (ui->selected - ui->scroll_offset >= max_rows) {
+        ui->scroll_offset++;
+      }
     }
   } else if (key == KEY_DOWN) {
     if (ui->selected > 0) {
       ui->selected--;
+      if (ui->selected < ui->scroll_offset) {
+        ui->scroll_offset--;
+      }
     }
   }
 }
@@ -101,6 +107,9 @@ int keyProcessing(App *app, int key) {
   UIState *ui = &app->ui;
   Match *top = app->top;
   TermState *term = &app->term;
+  int max_rows = term->rows - 3;
+  if (max_rows < 0)
+    max_rows = 0;
 
   if (key == 27) { // ESC
     if (ui->query_len > 0) {
@@ -122,8 +131,8 @@ int keyProcessing(App *app, int key) {
     launchApp(top[ui->selected].exec);
     return 0;
   } else if (key >= KEY_UP && key <= KEY_RIGHT) {
-    handleArrowKeyEvents(key, ui, top);
-    highlightSelected(top, ui->selected, term);
+    handleArrowKeyEvents(key, ui, top, app->top_n, max_rows);
+    highlightSelected(top, ui->selected, ui->scroll_offset, term, max_rows);
   } else if (isprint(key)) {
     if (ui->query_len < 511) {
       ui->query[ui->query_len] = (char)key;

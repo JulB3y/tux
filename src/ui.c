@@ -67,12 +67,30 @@ void basicFrame(int *ui_changed, TermState *term) {
   *ui_changed = 1;
 }
 
-void printResults(int rows, int cols, Match *top, int top_n) {
-  for (int i = 0; i < top_n; i++) {
+void printResults(int rows, int cols, Match *top, int top_n, int scroll_offset, int max_rows) {
+  int visible = 0;
+
+  for (int i = scroll_offset; i < top_n && visible < max_rows; i++) {
     if (top[i].score > 0) {
-      printf_cols(cols, "\x1b[%d;0H %s ", rows - 3 - i, top[i].name);
+      int display_row = rows - 3 - visible;
+      printf("\x1b[%d;1H\x1b[2K", display_row);
+      printf_cols(cols, " %s ", top[i].name);
+      visible++;
     }
   }
+}
+
+void highlightSelected(Match *top, int selected, int scroll_offset, TermState *term, int max_rows) {
+  int visible_idx = selected - scroll_offset;
+  if (visible_idx < 0 || visible_idx >= max_rows)
+    return;
+  int visible_row = term->rows - 3 - visible_idx;
+  printf("\x1b[%d;1H\x1b[2K", visible_row);
+  if (top[selected].score > 0)
+    printf_cols(term->cols, "\x1b[48;2;100;100;100m %s ", top[selected].name);
+  else if (top[selected].score == 0)
+    printf_cols(term->cols, "\x1b[38;2;100;100;100m %s ", "no result");
+  printf("\x1b[0m");
 }
 
 void printQuery(UIState *ui, TermState *term) {
@@ -92,13 +110,4 @@ void printQuery(UIState *ui, TermState *term) {
          queryLen > termCols - 4 ? termCols - 1 : queryLen + 3);
 
   ui->ui_changed = 1;
-}
-
-void highlightSelected(Match *top, int selected, TermState *term) {
-  printf("\x1b[%d;1H", term->rows - 3 - selected);
-  if (top[0].score != 0)
-    printf_cols(term->cols, "\x1b[48;2;100;100;100m %s ", top[selected].name);
-  else if (top[0].score == 0)
-    printf_cols(term->cols, "\x1b[38;2;100;100;100m %s ", "no result");
-  printf("\x1b[0m");
 }

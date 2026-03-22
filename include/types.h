@@ -15,6 +15,7 @@ typedef struct {
   int query_len;
   int query_changed;
   int selected;
+  int scroll_offset;
   int old_selected;
   int ui_changed;
 } UIState;
