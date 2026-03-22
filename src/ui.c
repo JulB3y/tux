@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "types.h"
 #include "ui.h"
@@ -84,30 +85,54 @@ void highlightSelected(Match *top, int selected, int scroll_offset, TermState *t
   int visible_idx = selected - scroll_offset;
   if (visible_idx < 0 || visible_idx >= max_rows)
     return;
+  if (top[selected].score <= 0)
+    return;
   int visible_row = term->rows - 3 - visible_idx;
   printf("\x1b[%d;1H\x1b[2K", visible_row);
-  if (top[selected].score > 0)
-    printf_cols(term->cols, "\x1b[48;2;100;100;100m %s ", top[selected].name);
-  else if (top[selected].score == 0)
-    printf_cols(term->cols, "\x1b[38;2;100;100;100m %s ", "no result");
+  printf_cols(term->cols, "\x1b[48;2;100;100;100m %s ", top[selected].name);
   printf("\x1b[0m");
+}
+
+static void printMode(const char *mode, TermState *term) {
+  int termRows = term->rows;
+  int termCols = term->cols;
+  int mode_len = (int)strlen(mode);
+
+  if (mode_len > 0) {
+    int pos = termCols - mode_len - 2;
+    printf("\x1b[%d;%dH", termRows, pos);
+    printf("─\x1b[38;2;100;100;100m%s\x1b[0m─", mode);
+  }
 }
 
 void printQuery(UIState *ui, TermState *term) {
   char *query = ui->query;
   int queryLen = ui->query_len;
+  char *calc_result = ui->calc_result;
+  char *mode = ui->mode;
   int termRows = term->rows;
   int termCols = term->cols;
+
   if (query[0] == 0) {
     printf_cols(term->cols, "\x1b[%d;%dH\x1b[2K│ search...", termRows - 1, 1);
   } else {
-
     printf("\x1b[%d;%dH\x1b[2K│ %.*s", termRows - 1, 1, termCols - 4,
            queryLen > termCols - 5 ? query + queryLen - termCols + 4 : query);
+
+    if (calc_result[0] != '\0') {
+      printf("\x1b[38;2;100;100;100m = %s\x1b[0m", calc_result);
+    }
   }
   printf("\x1b[%d;%dH│", termRows - 1, termCols);
-  printf("\x1b[%d;%dH", termRows - 1,
-         queryLen > termCols - 4 ? termCols - 1 : queryLen + 3);
 
   ui->ui_changed = 1;
+
+  printMode(mode, term);
+
+  if (query[0] == 0) {
+    printf("\x1b[%d;%dH", termRows - 1, 3);
+  } else {
+    int visible_len = queryLen > termCols - 5 ? termCols - 5 : queryLen;
+    printf("\x1b[%d;%dH", termRows - 1, visible_len + 3);
+  }
 }

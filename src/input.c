@@ -2,10 +2,12 @@
 #include <errno.h>
 #include <poll.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "exec.h"
 #include "input.h"
+#include "query.h"
 #include "search.h"
 #include "types.h"
 
@@ -129,6 +131,10 @@ int keyProcessing(App *app, int key) {
       ui->query_changed = 1;
     }
   } else if (key == '\r' || key == '\n') {
+    if (strcmp(ui->mode, "calc") == 0 && ui->calc_result[0] != '\0') {
+      copyToClipboard(ui->calc_result);
+      return 0;
+    }
     launchApp(top[ui->selected].exec);
     return 0;
   } else if (key >= KEY_UP && key <= KEY_RIGHT) {
@@ -144,7 +150,7 @@ int keyProcessing(App *app, int key) {
 
       int old_selected = app->ui.selected;
 
-      search(app, app->search_limit);
+      executeQuery(app, parseQuery(app->ui.query));
 
       app->ui.selected = old_selected;
       app->ui.old_selected = old_selected;

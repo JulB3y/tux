@@ -19,6 +19,8 @@ typedef struct {
   int scroll_offset;
   int old_selected;
   int ui_changed;
+  char calc_result[64];
+  char mode[8];
 } UIState;
 
 typedef struct app_keywords {

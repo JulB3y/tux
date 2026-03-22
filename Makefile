@@ -10,6 +10,7 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude \
          -Wmissing-declarations -Wredundant-decls -Wnested-externs \
          -Wlogical-op -Wswitch-default -Wbad-function-cast \
          -Wnonnull -Wvla
+LIBS = -lm
 DEBUGFLAGS = -g -O0 -fsanitize=address,undefined
 RELEASEFLAGS = -O3 -flto -march=native
 
@@ -21,10 +22,10 @@ TARGET = tux
 SRC = $(wildcard src/*.c)
 
 debug: $(SRC)
-	$(CC) $(SRC) -o $(TARGET)-debug $(CFLAGS) $(DEBUGFLAGS)
+	$(CC) $(SRC) -o $(TARGET)-debug $(CFLAGS) $(DEBUGFLAGS) $(LIBS)
 
 release: $(SRC)
-	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(RELEASEFLAGS)
+	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(RELEASEFLAGS) $(LIBS)
 
 clean:
 	rm -f $(TARGET) $(TARGET)-debug

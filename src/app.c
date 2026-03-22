@@ -20,10 +20,12 @@
 #include "config.h"
 #include "file.h"
 #include "input.h"
+#include "query.h"
 #include "search.h"
 #include "term.h"
 #include "types.h"
 #include "ui.h"
+#include "string.h"
 
 static volatile sig_atomic_t resized = 0;
 // signal handler for SIGWINCH (window size change)
@@ -166,14 +168,19 @@ void app_run(App *app) {
   app->top_n = app->app_count;
   app->ui.selected = 0;
   app->ui.scroll_offset = 0;
+  app->ui.calc_result[0] = '\0';
+  strcpy(app->ui.mode, "apps");
   app->search_limit = max_rows * 2;
   if (app->search_limit < 10)
     app->search_limit = 10;
 
   app->top = malloc((size_t)app->search_limit * sizeof(Match));
-  search(app, app->search_limit);
+  executeQuery(app, parseQuery(app->ui.query));
+  printQuery(&app->ui, &app->term);
   printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
-  highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+  if (app->top_n > 0) {
+    highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+  }
   fflush(stdout);
 
   for (;;) {
@@ -190,10 +197,12 @@ void app_run(App *app) {
       if (max_rows < 0)
         max_rows = 0;
 
-      search(app, app->search_limit);
-      printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
-      highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+      executeQuery(app, parseQuery(app->ui.query));
       printQuery(&app->ui, &app->term);
+      printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+      if (app->top_n > 0) {
+        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+      }
       fflush(stdout);
     }
 
@@ -206,7 +215,9 @@ void app_run(App *app) {
       if (app->ui.selected != app->ui.old_selected) {
         app->ui.old_selected = app->ui.selected;
         printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
-        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        if (app->top_n > 0) {
+          highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        }
         fflush(stdout);
       }
 
@@ -215,19 +226,24 @@ void app_run(App *app) {
         app->ui.selected = 0;
         app->ui.old_selected = 0;
         app->ui.scroll_offset = 0;
+        app->ui.calc_result[0] = '\0';
         app->search_limit = max_rows * 2;
         if (app->search_limit < 10)
           app->search_limit = 10;
 
-        search(app, app->search_limit);
-        printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
-        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        executeQuery(app, parseQuery(app->ui.query));
         printQuery(&app->ui, &app->term);
+        printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
+        if (app->top_n > 0) {
+          highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        }
       }
 
       if (app->ui.ui_changed) {
         printResults(*termRows, app->term.cols, app->top, app->top_n, app->ui.scroll_offset, max_rows);
-        highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        if (app->top_n > 0) {
+          highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
+        }
         printQuery(&app->ui, &app->term);
         fflush(stdout);
         app->ui.ui_changed = 0;
