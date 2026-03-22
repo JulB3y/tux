@@ -1,5 +1,6 @@
 #include <stddef.h>
 
+#include "config.h"
 #include "fuzzy.h"
 #include "search.h"
 #include "types.h"
@@ -109,8 +110,9 @@ int search(App *app, int limit) {
     int total_matches = 0;
 
     for (int i = 0; i < app->app_count; i++) {
-      int score = fuzzyScore(app->ui.query_lower, app->apps.nameLowerList[i],
-                             app->ui.query_len, app->apps.nameLenList[i]);
+      int score = fuzzyScore(app->config, app->apps.nameList[i], app->ui.query_lower,
+                             app->apps.nameLowerList[i], app->ui.query_len,
+                             app->apps.nameLenList[i]);
 
       if (score > 0) {
         total_matches++;

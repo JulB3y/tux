@@ -16,6 +16,7 @@
 
 #include "app.h"
 #include "cache.h"
+#include "config.h"
 #include "file.h"
 #include "input.h"
 #include "search.h"
@@ -104,6 +105,7 @@ App *app_init() {
   sigaction(SIGWINCH, &sa, NULL);
 
   app->app_count = appList->count;
+  app->config = config_init();
 
   return app;
 }
@@ -194,5 +196,6 @@ void app_run(App *app) {
 
   free(app->top);
   freeStorage(&app->apps);
+  config_free(app->config);
   app_shutdown(app);
 }

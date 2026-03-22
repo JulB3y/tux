@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "config.h"
 #include "fuzzy.h"
 
 static int isSubsequenceLower(const char *q, const char *s) {
@@ -43,8 +44,8 @@ static int containsLower(const char *haystack, const char *needle) {
   return 0;
 }
 
-int fuzzyScore(const char *queryLower, const char *nameLower, int queryLen,
-               int nameLen) {
+int fuzzyScore(Config *config, const char *app_name, const char *queryLower,
+               const char *nameLower, int queryLen, int nameLen) {
   int score = 0;
 
   if (queryLen == 0)
@@ -58,6 +59,8 @@ int fuzzyScore(const char *queryLower, const char *nameLower, int queryLen,
     score += 180;
   else if (isSubsequenceLower(queryLower, nameLower))
     score += 100;
+
+  score += config_get_keyword_score(config, app_name, queryLower, queryLen);
 
   int len_diff = nameLen - queryLen;
   if (len_diff < 0)

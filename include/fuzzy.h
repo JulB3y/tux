@@ -1,7 +1,9 @@
 #ifndef FUZZY_H
 #define FUZZY_H
 
-int fuzzyScore(const char *queryLower, const char *nameLower, int queryLen,
-               int nameLen);
+#include "config.h"
+
+int fuzzyScore(Config *config, const char *app_name, const char *queryLower,
+               const char *nameLower, int queryLen, int nameLen);
 
 #endif

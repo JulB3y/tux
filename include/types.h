@@ -3,6 +3,8 @@
 
 #include <termios.h>
 
+typedef struct Config Config;
+
 typedef struct {
   int rows;
   int cols;
@@ -51,6 +53,8 @@ typedef struct {
   int app_count;
   int search_limit;
   int has_more_results;
+
+  Config *config;
 } App;
 
 #endif
