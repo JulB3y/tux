@@ -6,7 +6,7 @@
 #include "search.h"
 
 static int containsOperator(const char *query) {
-  const char *operators = "+-*/^";
+  const char *operators = "+-*/%^";
   return strpbrk(query, operators) != NULL;
 }
 

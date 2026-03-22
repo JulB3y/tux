@@ -111,7 +111,7 @@ static const char *input;
 static int pos;
 
 static int isOperator(char c) {
-  return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
+  return c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '^';
 }
 
 static int isDigitOrDot(char c) {
@@ -169,6 +169,7 @@ static int getPrecedence(char op) {
       return 4;
     case '*':
     case '/':
+    case '%':
       return 3;
     case '+':
     case '-':
@@ -314,6 +315,13 @@ static double evaluatePostfix(TokenStack *postfix) {
             return NAN;
           }
           result = a / b;
+          break;
+        case '%':
+          if (fabs(b) < 1e-10) {
+            freeDoubleStack(&stack);
+            return NAN;
+          }
+          result = fmod(a, b);
           break;
         case '^':
           result = pow(a, b);
