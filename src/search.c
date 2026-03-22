@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "fuzzy.h"
+#include "search.h"
 #include "types.h"
 #include "ui.h"
 #include "util.h"

@@ -2,7 +2,14 @@ CC = gcc
 
 UNAME := $(shell uname)
 
-CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude
+CFLAGS = -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Iinclude \
+         -Wformat=2 -Wformat-overflow -Wformat-truncation \
+         -Wnull-dereference -Winit-self -Wuninitialized \
+         -Wstrict-aliasing -Wfloat-equal -Wpointer-arith \
+         -Wcast-align -Wstrict-prototypes -Wmissing-prototypes \
+         -Wmissing-declarations -Wredundant-decls -Wnested-externs \
+         -Wlogical-op -Wswitch-default -Wbad-function-cast \
+         -Wnonnull -Wvla
 DEBUGFLAGS = -g -O0 -fsanitize=address,undefined
 RELEASEFLAGS = -O2
 

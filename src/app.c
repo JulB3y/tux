@@ -14,6 +14,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "app.h"
 #include "cache.h"
 #include "file.h"
 #include "input.h"
@@ -25,12 +26,12 @@
 static volatile sig_atomic_t resized = 0;
 // signal handler for SIGWINCH (window size change)
 // marks terminal as resized
-void handleWinch(int sig) {
+static void handleWinch(int sig) {
   (void)sig;   // unused parameter
   resized = 1; // flag checked in main event loop
 }
 
-void freeStorage(AppList *a) {
+static void freeStorage(AppList *a) {
 
   free(a->src);
 
@@ -107,7 +108,7 @@ App *app_init() {
   return app;
 }
 
-void app_shutdown(App *app) {
+static void app_shutdown(App *app) {
   deactAltScreen();
   deactRaw(app);
 }

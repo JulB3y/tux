@@ -3,11 +3,14 @@
 #include <stdlib.h>
 
 #include "types.h"
+#include "ui.h"
 
 static void printf_cols(int cols, const char *fmt, ...) {
   if (cols <= 0)
     return;
 
+  static char buf[2048];
+  
   va_list args;
   va_start(args, fmt);
 
@@ -16,18 +19,12 @@ static void printf_cols(int cols, const char *fmt, ...) {
   int len = vsnprintf(NULL, 0, fmt, copy);
   va_end(copy);
 
-  if (len < 0) {
+  if (len < 0 || len >= (int)sizeof(buf)) {
     va_end(args);
     return;
   }
 
-  char *buf = malloc((size_t)len + 1);
-  if (!buf) {
-    va_end(args);
-    return;
-  }
-
-  vsnprintf(buf, (size_t)len + 1, fmt, args);
+  vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
 
   int visible = 0;
@@ -46,8 +43,6 @@ static void printf_cols(int cols, const char *fmt, ...) {
       visible++;
     }
   }
-
-  free(buf);
 }
 
 void clearResUi(int rows) {

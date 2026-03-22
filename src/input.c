@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "exec.h"
+#include "input.h"
 #include "types.h"
 #include "ui.h"
 
@@ -55,6 +56,8 @@ int readKey(App *app) {
       case 'D':
         app->ui.ui_changed = 1;
         return KEY_LEFT;
+      default:
+        break;
       }
     }
 
@@ -97,8 +100,9 @@ int waitForInputOrSignal(void) {
 int keyProcessing(int key, UIState *ui, Match *top, TermState *term) {
   if (key == 27) { // ESC
     if (ui->query_len > 0) {
-      for (; ui->query_len >= 0; (ui->query_len)--)
-        ui->query[ui->query_len] = '\0';
+      ui->query[0] = '\0';
+      ui->query_len = 0;
+      ui->query_changed = 1;
       return 1;
     }
     return 0;

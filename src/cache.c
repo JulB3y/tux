@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "cache.h"
 #include "types.h"
 #include "util.h"
 

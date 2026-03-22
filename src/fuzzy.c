@@ -1,5 +1,7 @@
 #include <string.h>
 
+#include "fuzzy.h"
+
 static int isSubsequenceLower(const char *q, const char *s) {
   while (*q && *s) {
     if (*q == *s)
@@ -19,18 +21,25 @@ static int startsWithLower(const char *s, const char *prefix) {
   return *prefix == '\0';
 }
 
-static int containsLower(const char *s, const char *p) {
-  size_t plen = strlen(p);
-  if (plen == 0)
+static int containsLower(const char *haystack, const char *needle) {
+  if (!*needle)
     return 1;
 
-  for (size_t i = 0; s[i]; i++) {
-    size_t j = 0;
-    while (s[i + j] && p[j] && s[i + j] == p[j])
-      j++;
-    if (j == plen)
+  while (*haystack) {
+    const char *h = haystack;
+    const char *n = needle;
+
+    while (*h && *n && *h == *n) {
+      h++;
+      n++;
+    }
+
+    if (!*n)
       return 1;
+
+    haystack++;
   }
+
   return 0;
 }
 

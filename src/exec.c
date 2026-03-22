@@ -3,6 +3,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "exec.h"
+
 void launchApp(char *exec) {
   pid_t pid = fork();
   if (pid < 0)

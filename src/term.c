@@ -2,6 +2,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "term.h"
 #include "types.h"
 
 void actAltScreen(void) {

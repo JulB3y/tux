@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "file.h"
+
 static int getGUIApps(char *d, char *n, char *appName, char *execCmd) {
   char path[512]; // string to store the path of .desktop file
   snprintf(path, sizeof(path), "%s/%s", d, n); // append filename to global path
