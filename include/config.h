@@ -11,6 +11,11 @@ typedef struct {
 } AppConfig;
 
 typedef struct {
+  char *name;
+  char *url;
+} WebConfig;
+
+typedef struct {
   char *string_pool;
   size_t pool_size;
   size_t pool_capacity;
@@ -18,11 +23,19 @@ typedef struct {
   AppConfig *configs;
   int config_count;
   int config_capacity;
+
+  WebConfig *web_configs;
+  int web_config_count;
+  int web_config_capacity;
+
+  char *std_browser;
 } Config;
 
 Config *config_init();
 void config_free(Config *config);
 
 char **config_get_keywords(Config *config, const char *app_name, int *keyword_count);
+char *config_get_std_browser(Config *config);
+WebConfig *config_get_web_configs(Config *config, int *count);
 
 #endif

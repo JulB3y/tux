@@ -4,6 +4,8 @@
 #include "calc.h"
 #include "query.h"
 #include "search.h"
+#include "ui.h"
+#include "web.h"
 
 static int containsOperator(const char *query) {
   const char *operators = "+-*/%^";
@@ -26,7 +28,13 @@ static int appSearchHandler(App *app, const char *query) {
   app->ui.calc_result[0] = '\0';
   strcpy(app->ui.mode, "apps");
   (void)query;
-  return search(app, app->search_limit);
+  int result = search(app, app->search_limit);
+
+  if (result && app->ui.query[0] != '\0' && app->top_n == 0) {
+    return executeQuery(app, QUERY_TYPE_WEB_SEARCH);
+  }
+
+  return result;
 }
 
 QueryType parseQuery(const char *query) {
@@ -49,7 +57,7 @@ static QueryHandlerRegistration handlers[] = {
   {QUERY_TYPE_APP_SEARCH, appSearchHandler, "app_search"},
   {QUERY_TYPE_CALCULATOR, calcHandler, "calculator"},
   {QUERY_TYPE_FILE_SEARCH, NULL, "file_search"},
-  {QUERY_TYPE_WEB_SEARCH, NULL, "web_search"},
+  {QUERY_TYPE_WEB_SEARCH, webSearchHandler, "web_search"},
   {QUERY_TYPE_COMMAND, NULL, "command"}
 };
 

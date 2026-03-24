@@ -238,6 +238,7 @@ void app_run(App *app) {
         if (app->top_n > 0) {
           highlightSelected(app->top, app->ui.selected, app->ui.scroll_offset, &app->term, max_rows);
         }
+        fflush(stdout);
       }
 
       if (app->ui.ui_changed) {

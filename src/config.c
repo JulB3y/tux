@@ -117,6 +117,18 @@ static void add_keyword(Config *config, const char *keyword) {
   app->keyword_count++;
 }
 
+static void add_web_config(Config *config, const char *name, const char *url) {
+  if (config->web_config_count >= config->web_config_capacity) {
+    int new_capacity = config->web_config_capacity == 0 ? INITIAL_CAPACITY : config->web_config_capacity * 2;
+    config->web_configs = realloc(config->web_configs, (size_t)new_capacity * sizeof(WebConfig));
+    config->web_config_capacity = new_capacity;
+  }
+
+  config->web_configs[config->web_config_count].name = pool_strdup(config, name);
+  config->web_configs[config->web_config_count].url = pool_strdup(config, url);
+  config->web_config_count++;
+}
+
 static void parse_array(char *value, Config *config) {
   char *start = strchr(value, '[');
   char *end = strrchr(value, ']');
@@ -155,6 +167,10 @@ Config *config_init() {
   config->configs = NULL;
   config->config_count = 0;
   config->config_capacity = 0;
+  config->web_configs = NULL;
+  config->web_config_count = 0;
+  config->web_config_capacity = 0;
+  config->std_browser = NULL;
   config->string_pool = malloc(INITIAL_POOL_SIZE);
   config->pool_size = 0;
   config->pool_capacity = INITIAL_POOL_SIZE;
@@ -188,8 +204,12 @@ Config *config_init() {
     char *trimmed = trim_whitespace(line_copy);
 
     if (trimmed[0] == '[' && trimmed[strlen(trimmed) - 1] == ']') {
+      int is_double = (trimmed[1] == '[');
       trimmed++;
-      trimmed[strlen(trimmed) - 1] = '\0';
+      if (is_double) trimmed++;
+      size_t end_offset = is_double ? 2 : 1;
+      trimmed[strlen(trimmed) - end_offset] = '\0';
+
       if (strcmp(trimmed, "apps") == 0) {
         line = strtok_r(NULL, "\n", &saveptr);
         while (line) {
@@ -230,6 +250,83 @@ Config *config_init() {
                 add_config(config, app_name);
                 parse_array(value, config);
               }
+            }
+          }
+
+          line = strtok_r(NULL, "\n", &saveptr);
+        }
+      } else if (strcmp(trimmed, "web.modes") == 0) {
+        char current_web_name[256] = {0};
+        char current_web_url[512] = {0};
+
+        int in_array_section = is_double;
+
+        line = strtok_r(NULL, "\n", &saveptr);
+        while (line) {
+          strncpy(line_copy, line, sizeof(line_copy) - 1);
+          line_copy[sizeof(line_copy) - 1] = '\0';
+          trimmed = trim_whitespace(line_copy);
+
+          if (trimmed[0] == '[') {
+            if (in_array_section && trimmed[1] == '[') {
+              if (current_web_name[0] != '\0' && current_web_url[0] != '\0') {
+                add_web_config(config, current_web_name, current_web_url);
+              }
+              current_web_name[0] = '\0';
+              current_web_url[0] = '\0';
+            } else {
+              if (current_web_name[0] != '\0' && current_web_url[0] != '\0') {
+                add_web_config(config, current_web_name, current_web_url);
+              }
+              current_web_name[0] = '\0';
+              current_web_url[0] = '\0';
+              break;
+            }
+          }
+
+          if (strchr(trimmed, '=')) {
+            char *eq = strchr(trimmed, '=');
+            *eq = '\0';
+            char *key = trim_whitespace(trimmed);
+            char *value = trim_whitespace(eq + 1);
+
+            if (strcmp(key, "name") == 0) {
+              char *unquoted = remove_quotes(trim_whitespace(value));
+              strncpy(current_web_name, unquoted, sizeof(current_web_name) - 1);
+              current_web_name[sizeof(current_web_name) - 1] = '\0';
+            } else if (strcmp(key, "url") == 0) {
+              char *unquoted = remove_quotes(trim_whitespace(value));
+              strncpy(current_web_url, unquoted, sizeof(current_web_url) - 1);
+              current_web_url[sizeof(current_web_url) - 1] = '\0';
+            }
+          }
+
+          line = strtok_r(NULL, "\n", &saveptr);
+        }
+
+        if (current_web_name[0] != '\0' && current_web_url[0] != '\0') {
+          add_web_config(config, current_web_name, current_web_url);
+        }
+      } else if (strcmp(trimmed, "settings") == 0) {
+        line = strtok_r(NULL, "\n", &saveptr);
+        while (line) {
+          strncpy(line_copy, line, sizeof(line_copy) - 1);
+          line_copy[sizeof(line_copy) - 1] = '\0';
+          trimmed = trim_whitespace(line_copy);
+
+          if (trimmed[0] == '[') {
+            break;
+          }
+
+          if (strchr(trimmed, '=')) {
+            char *eq = strchr(trimmed, '=');
+            *eq = '\0';
+            char *key = trim_whitespace(trimmed);
+            char *value = trim_whitespace(eq + 1);
+
+            if (strcmp(key, "std.browser") == 0) {
+              char *unquoted = remove_quotes(value);
+              config->std_browser = pool_strdup(config, unquoted);
             }
           }
 
@@ -276,4 +373,21 @@ char **config_get_keywords(Config *config, const char *app_name, int *keyword_co
 
   *keyword_count = 0;
   return NULL;
+}
+
+char *config_get_std_browser(Config *config) {
+  if (!config)
+    return NULL;
+  return config->std_browser;
+}
+
+WebConfig *config_get_web_configs(Config *config, int *count) {
+  if (!config || !count) {
+    if (count)
+      *count = 0;
+    return NULL;
+  }
+
+  *count = config->web_config_count;
+  return config->web_configs;
 }
