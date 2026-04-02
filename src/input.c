@@ -177,6 +177,8 @@ int keyProcessing(App *app, int key) {
       ui->query_lower[ui->cursor_pos] = (char)tolower((unsigned char)key);
       ui->query_len++;
       ui->cursor_pos++;
+      ui->query[ui->query_len] = '\0';
+      ui->query_lower[ui->query_len] = '\0';
       ui->query_changed = 1;
     }
   }
