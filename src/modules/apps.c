@@ -5,6 +5,7 @@
 #include "../../include/types.h"
 #include "../../include/fuzzy.h"
 #include "../../include/ui.h"
+#include "apps.h"
 
 typedef struct {
     App *app;

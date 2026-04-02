@@ -6,6 +6,7 @@
 #include "../../include/module.h"
 #include "../../include/types.h"
 #include "../../include/config.h"
+#include "web.h"
 
 typedef struct {
     Config *config;

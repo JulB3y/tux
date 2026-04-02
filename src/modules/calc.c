@@ -6,6 +6,7 @@
 
 #include "../../include/module.h"
 #include "../../include/types.h"
+#include "calc.h"
 
 typedef enum {
     TOKEN_NUMBER,
