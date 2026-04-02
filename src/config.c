@@ -171,6 +171,9 @@ Config *config_init() {
   config->web_config_count = 0;
   config->web_config_capacity = 0;
   config->std_browser = NULL;
+  config->enabled_apps = 1;
+  config->enabled_calc = 1;
+  config->enabled_web = 1;
   config->string_pool = malloc(INITIAL_POOL_SIZE);
   config->pool_size = 0;
   config->pool_capacity = INITIAL_POOL_SIZE;
@@ -332,6 +335,36 @@ Config *config_init() {
 
           line = strtok_r(NULL, "\n", &saveptr);
         }
+      } else if (strcmp(trimmed, "features") == 0) {
+        line = strtok_r(NULL, "\n", &saveptr);
+        while (line) {
+          strncpy(line_copy, line, sizeof(line_copy) - 1);
+          line_copy[sizeof(line_copy) - 1] = '\0';
+          trimmed = trim_whitespace(line_copy);
+
+          if (trimmed[0] == '[') {
+            break;
+          }
+
+          if (strchr(trimmed, '=')) {
+            char *eq = strchr(trimmed, '=');
+            *eq = '\0';
+            char *key = trim_whitespace(trimmed);
+            char *value = trim_whitespace(eq + 1);
+
+            int enabled = strcmp(value, "true") == 0 || strcmp(value, "1") == 0;
+
+            if (strcmp(key, "apps") == 0) {
+              config->enabled_apps = enabled;
+            } else if (strcmp(key, "calc") == 0) {
+              config->enabled_calc = enabled;
+            } else if (strcmp(key, "web") == 0) {
+              config->enabled_web = enabled;
+            }
+          }
+
+          line = strtok_r(NULL, "\n", &saveptr);
+        }
       } else {
         line = strtok_r(NULL, "\n", &saveptr);
       }
@@ -390,4 +423,18 @@ WebConfig *config_get_web_configs(Config *config, int *count) {
 
   *count = config->web_config_count;
   return config->web_configs;
+}
+
+int config_get_module_enabled(Config *config, const char *module_name) {
+  if (!config || !module_name)
+    return 1;
+
+  if (strcmp(module_name, "apps") == 0)
+    return config->enabled_apps;
+  if (strcmp(module_name, "calc") == 0)
+    return config->enabled_calc;
+  if (strcmp(module_name, "web") == 0)
+    return config->enabled_web;
+
+  return 1;
 }

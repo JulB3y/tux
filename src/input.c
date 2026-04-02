@@ -8,7 +8,6 @@
 #include "exec.h"
 #include "input.h"
 #include "query.h"
-#include "search.h"
 #include "types.h"
 
 enum {
@@ -16,18 +15,15 @@ enum {
   KEY_DOWN,
   KEY_RIGHT,
   KEY_LEFT
-}; // map arrow key ESC-sequences to ints
+};
 
 int readKey(void) {
   char c;
 
-  // reads key + error handling
   if (read(STDIN_FILENO, &c, 1) != 1)
     return -1;
 
-  // handler for ESC-sequences
   if (c == '\x1b') {
-    // determine if esc is part of multi-byte sequence
     struct pollfd pfd = {.fd = STDIN_FILENO, .events = POLLIN};
 
     int r = poll(&pfd, 1, 25);
@@ -96,13 +92,13 @@ int waitForInputOrSignal(void) {
     int r = poll(&pfd, 1, -1);
 
     if (r > 0)
-      return 1; // input da
+      return 1;
     if (r == 0)
-      continue; // bei -1 eigentlich unmöglich
+      continue;
 
     if (errno == EINTR)
-      return 0; // signal, z.B. SIGWINCH
-    return -1;  // echter fehler
+      return 0;
+    return -1;
   }
 }
 
@@ -114,7 +110,7 @@ int keyProcessing(App *app, int key) {
   if (max_rows < 0)
     max_rows = 0;
 
-  if (key == 27) { // ESC
+  if (key == 27) {
     if (ui->query_len > 0) {
       ui->query[0] = '\0';
       ui->query_lower[0] = '\0';
@@ -124,7 +120,7 @@ int keyProcessing(App *app, int key) {
       return 1;
     }
     return 0;
-  } else if (key == 127 || key == 8) { // backspace
+  } else if (key == 127 || key == 8) {
     if (ui->cursor_pos > 0) {
       for (int i = ui->cursor_pos - 1; i < ui->query_len; i++) {
         ui->query[i] = ui->query[i + 1];

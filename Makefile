@@ -19,13 +19,17 @@ CFLAGS += -D_DARWIN_C_SOURCE
 endif
 
 TARGET = tux
-SRC = $(wildcard src/*.c)
+SRC = src/app.c src/cache.c src/config.c src/exec.c src/file.c \
+      src/fuzzy.c src/input.c src/main.c src/query.c \
+      src/term.c src/ui.c src/util.c
+MODULES_SRC = src/modules/registry.c src/modules/calc.c \
+              src/modules/apps.c src/modules/web.c
 
-debug: $(SRC)
-	$(CC) $(SRC) -o $(TARGET)-debug $(CFLAGS) $(DEBUGFLAGS) $(LIBS)
+debug: $(SRC) $(MODULES_SRC)
+	$(CC) $(SRC) $(MODULES_SRC) -o $(TARGET)-debug $(CFLAGS) $(DEBUGFLAGS) $(LIBS)
 
-release: $(SRC)
-	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(RELEASEFLAGS) $(LIBS)
+release: $(SRC) $(MODULES_SRC)
+	$(CC) $(SRC) $(MODULES_SRC) -o $(TARGET) $(CFLAGS) $(RELEASEFLAGS) $(LIBS)
 
 clean:
 	rm -f $(TARGET) $(TARGET)-debug

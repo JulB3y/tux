@@ -1,0 +1,36 @@
+# example config for tux
+# must be placed in ~/.config/tux/config.toml
+
+# app specific keywords
+[apps]
+firefox.keywords = ["browser", "web"]
+visual-studio-code.keywords = ["code", "editor", "ide"]
+blender.keywords = ["3d", "modeling"]
+
+# web search config
+[[web.modes]]
+name = "Wikipedia"
+url = "https://de.wikipedia.org/wiki/Special:Search?search=%s"
+
+[[web.modes]]
+name = "Google"
+url = "https://www.google.com/search?q=%s"
+
+[[web.modes]]
+name = "YouTube"
+url = "https://www.youtube.com/results?search_query=%s"
+
+[[web.modes]]
+name = "GitHub"
+url = "https://github.com/search?q=%s"
+
+[[web.modes]]
+name = "DuckDuckGo"
+url = "https://duckduckgo.com/?q=%s"
+
+# settings
+[settings]
+# sets browser for web search feature
+# uses xdg-open if not set
+# for example: firefox, chromium, google-chrome, xdg-open, etc.
+std.browser = "firefox"

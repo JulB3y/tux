@@ -11,15 +11,9 @@ typedef enum {
   QUERY_TYPE_COMMAND
 } QueryType;
 
-typedef int (*QueryHandler)(App *app, const char *query);
-
-typedef struct {
-  QueryType type;
-  QueryHandler handler;
-  const char *name;
-} QueryHandlerRegistration;
-
 QueryType parseQuery(const char *query);
 int executeQuery(App *app, QueryType type);
+void modules_init(App *app);
+void modules_shutdown(void);
 
 #endif

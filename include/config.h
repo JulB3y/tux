@@ -29,6 +29,10 @@ typedef struct {
   int web_config_capacity;
 
   char *std_browser;
+
+  int enabled_apps;
+  int enabled_calc;
+  int enabled_web;
 } Config;
 
 Config *config_init();
@@ -37,5 +41,6 @@ void config_free(Config *config);
 char **config_get_keywords(Config *config, const char *app_name, int *keyword_count);
 char *config_get_std_browser(Config *config);
 WebConfig *config_get_web_configs(Config *config, int *count);
+int config_get_module_enabled(Config *config, const char *module_name);
 
 #endif

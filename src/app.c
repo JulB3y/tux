@@ -20,23 +20,21 @@
 #include "config.h"
 #include "file.h"
 #include "input.h"
+#include "module.h"
 #include "query.h"
-#include "search.h"
 #include "term.h"
 #include "types.h"
 #include "ui.h"
 #include "string.h"
 
 static volatile sig_atomic_t resized = 0;
-// signal handler for SIGWINCH (window size change)
-// marks terminal as resized
+
 static void handleWinch(int sig) {
-  (void)sig;   // unused parameter
-  resized = 1; // flag checked in main event loop
+  (void)sig;
+  resized = 1;
 }
 
 static void freeStorage(AppList *a) {
-
   if (a->src_is_mmaped)
     munmap(a->src, (size_t)a->src_size + 1);
   else
@@ -67,6 +65,10 @@ static void freeStorage(AppList *a) {
 
 App *app_init() {
   App *app = malloc(sizeof(App));
+  if (!app)
+    return NULL;
+
+  memset(app, 0, sizeof(App));
 
   actRaw(app);
   actAltScreen();
@@ -150,16 +152,18 @@ App *app_init() {
     }
   }
 
+  modules_init(app);
+
   return app;
 }
 
 static void app_shutdown(App *app) {
+  modules_shutdown();
   deactAltScreen();
   deactRaw(app);
 }
 
 void app_run(App *app) {
-
   int *termRows = &app->term.rows;
   int max_rows = *termRows - 3;
   if (max_rows < 0)

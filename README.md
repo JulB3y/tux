@@ -37,7 +37,7 @@ A fast, dependency-free app launcher for Unix systems written in C.
 - Works on Linux and macOS
 - custom TUI (no ncurses)
 - scans `/usr/share/applications/` for `.desktop` entries
-- Modular query system for extensibility
+- **Modular query system** with module registry for extensibility
 
 ---
 
@@ -79,7 +79,9 @@ sudo chmod +x /usr/local/bin/tux
 
 ### Configuration
 
-Tux supports custom configuration to add keywords for applications. Create a configuration file at `~/.config/tux/config.toml`:
+Tux supports custom configuration via TOML. Create a configuration file at `~/.config/tux/config.toml`:
+
+#### Custom Keywords for Apps
 
 ```toml
 [apps]
@@ -89,24 +91,36 @@ blender.keywords = ["3d", "modeling"]
 "visual studio code".keywords = ["code", "editor"]
 ```
 
-Both quoted and unquoted app names are supported:
+**Note:** App names containing spaces MUST be quoted:
 ```toml
-[apps]
-firefox.keywords = ["browser", "web"]
-"firefox".keywords = ["browser", "web"]
-```
-
-**Important:** App names containing spaces MUST be quoted:
-```toml
-[apps]
-# ✅ Valid - quoted
+# Valid - quoted
 "visual studio code".keywords = ["code", "editor"]
 
-# ❌ Invalid - must use quotes
+# Invalid - must use quotes
 visual studio code.keywords = ["code", "editor"]
 ```
 
-**Note:** Keywords are case-insensitive and will be matched when searching. You can use alternative names or aliases for applications to make them easier to find.
+Keywords are case-insensitive and will be matched when searching.
+
+#### Web Search Fallback
+
+```toml
+[web-search]
+url = "https://duckduckgo.com/?q={q}"
+```
+
+The `{q}` placeholder is replaced with your query and automatically URL-encoded.
+
+#### Complete Example
+
+```toml
+[apps]
+firefox.keywords = ["browser", "web", "ff"]
+"visual studio code".keywords = ["code", "editor", "vscode"]
+
+[web-search]
+url = "https://duckduckgo.com/?q={q}"
+```
 
 ### Calculator
 
@@ -164,25 +178,74 @@ log(10)                → 2.3026
 
 ## Architecture
 
+### Modular Architecture
+
+Tux uses a **modular architecture** with a central **Module Registry**. Each feature (calculator, app search, web search) is implemented as a self-contained module.
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                     Tux Application                         │
+└────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────┐
+│                   Module Registry                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  calc  → modules/calc.c  (math expressions)          │  │
+│  │  apps  → modules/apps.c  (app launcher)              │  │
+│  │  web   → modules/web.c   (web search fallback)       │  │
+│  └──────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────┘
+```
+
 ### Project Structure
 
 ```
 tux-launcher/
-├── include/          # Header files
-│   ├── query.h      # Query parsing and dispatching
-│   ├── calc.h       # Calculator functionality
+├── include/              # Header files
+│   ├── app.h            # Application lifecycle
+│   ├── cache.h          # Memory-mapped caching
+│   ├── config.h         # TOML configuration
+│   ├── fuzzy.h          # Fuzzy matching algorithm
+│   ├── module.h         # Module system definitions
+│   ├── query.h          # Query parsing and dispatching
+│   ├── ui.h             # Terminal UI rendering
 │   └── ...
-├── src/             # Source code
-│   ├── app.c        # Application lifecycle
-│   ├── query.c      # Query parser and dispatcher
-│   ├── calc.c       # Calculator implementation
-│   ├── search.c     # Search algorithms
-│   ├── fuzzy.c      # Fuzzy matching
-│   ├── cache.c      # Caching system
+├── src/                 # Source code implementation
+│   ├── app.c
+│   ├── cache.c
+│   ├── config.c
+│   ├── exec.c
+│   ├── fuzzy.c
+│   ├── query.c          # Query dispatch (uses module registry)
+│   ├── ui.c
 │   └── ...
-├── Makefile         # Build configuration
+├── src/modules/         # Feature modules
+│   ├── registry.c       # Module registry implementation
+│   ├── module.h         # Module interface definitions
+│   ├── calc.c/h         # Calculator module
+│   ├── apps.c/h         # Application search module
+│   └── web.c/h          # Web search module
+├── docs/                # Documentation
+├── Makefile
 └── README.md
 ```
+
+### Module System
+
+The module system allows adding new features without modifying core code:
+
+```c
+typedef struct Module {
+    const char *name;                      // Module identifier
+    bool (*match)(const char *query);      // Check if query belongs to this module
+    void *(*execute)(Module *module, const char *query);  // Handle the query
+    void (*destroy)(Module *module);       // Cleanup function
+    void *context;                         // Module-specific data
+} Module;
+```
+
+Modules are discovered via `registry_find_by_query()` which calls each module's `match()` function until one returns true.
 
 ---
 
