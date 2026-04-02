@@ -15,22 +15,21 @@ A fast, dependency-free app launcher for Unix systems written in C.
 ## Features
 
 ### Performance
-- fast fuzzy search with optimized algorithms
+- fast fuzzy search
 - no external libraries
 - caching for instant startup
 - lazy loading of search results
-- optimized memory usage with smart allocations
 - efficient string matching with early returns
 - qsort-based result sorting for O(n log n) complexity
 - memory-mapped file I/O for large cache files
 
 ### Calculator
 - Built-in calculator with automatic equation detection
-- Supports basic operations: `+`, `-`, `*`, `/`, `^` (power)
+- Supports basic operations: `+`, `-`, `*`, `/`, `^` (power), `%` (mod)
 - Parentheses for grouping: `(1+2)*3`
 - Mathematical functions: `sqrt()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`
 - Implicit multiplication: `2(1+3)` → `8`
-- Real-time results displayed inline with query
+- Results displayed inline with query
 - Copy results to clipboard with Enter
 
 ### Technical
@@ -51,8 +50,6 @@ yay -S tux
 
 ### Build from Source
 
-The easiest way is to compile it yourself:
-
 ```bash
 # Build the release binary
 make release
@@ -64,7 +61,7 @@ sudo make install
 sudo make uninstall
 ```
 
-### Manual Installation
+#### Manual Installation
 
 After building, you can also manually copy the binary:
 
@@ -102,24 +99,39 @@ visual studio code.keywords = ["code", "editor"]
 
 Keywords are case-insensitive and will be matched when searching.
 
-#### Web Search Fallback
+#### Web Search
 
 ```toml
 [web-search]
-url = "https://duckduckgo.com/?q={q}"
+name = "DuckDuckGo"
+url = "https://duckduckgo.com/?q=%s"
 ```
 
-The `{q}` placeholder is replaced with your query and automatically URL-encoded.
+The `%s` placeholder is replaced with your query and automatically URL-encoded.
 
 #### Complete Example
 
 ```toml
 [apps]
-firefox.keywords = ["browser", "web", "ff"]
-"visual studio code".keywords = ["code", "editor", "vscode"]
+firefox.keywords = ["browser", "web"]
 
-[web-search]
-url = "https://duckduckgo.com/?q={q}"
+[features]
+apps = true
+calc = true
+web = true
+
+[settings]
+std.browser = firefox
+
+[[web.modes]]
+name = "Wikipedia"
+url = "https://de.wikipedia.org/wiki/Special:Search?search=%s"
+[[web.modes]]
+name = "Google"
+url = "https://www.google.com/search?q=%s"
+[[web.modes]]
+name = "DuckDuckGo"
+url = "https://www.duckduckgo.com/&q=%s"
 ```
 
 ### Calculator
@@ -143,12 +155,6 @@ log(10)                → 2.3026
 4(2+3)                 → 20
 ```
 
-**Features:**
-- Automatic detection: Calculator activates when operators, parentheses, or functions are detected
-- Real-time results: See the calculation result as you type
-- Copy to clipboard: Press Enter to copy the result to your clipboard
-- Supports: `+`, `-`, `*`, `/`, `^`, `()`, `sqrt()`, `sin()`, `cos()`, `tan()`, `log()`, `exp()`
-
 **Note:** Calculator mode only activates when the query contains mathematical operators, parentheses, or functions. Otherwise, it searches for applications as usual.
 
 ### Keyboard Shortcuts
@@ -171,7 +177,7 @@ log(10)                → 2.3026
   - [ ] Color schemes
   - [ ] Custom app paths
 - [ ] File search and opening
-- [ ] Web search with query
+- [x] Web search with query
 - [ ] Quick shell commands
 
 ---
@@ -184,12 +190,12 @@ Tux uses a **modular architecture** with a central **Module Registry**. Each fea
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                     Tux Application                         │
+│                     Tux Application                        │
 └────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌────────────────────────────────────────────────────────────┐
-│                   Module Registry                            │
+│                   Module Registry                          │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  calc  → modules/calc.c  (math expressions)          │  │
 │  │  apps  → modules/apps.c  (app launcher)              │  │
