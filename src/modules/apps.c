@@ -23,6 +23,12 @@ void apps_module_set_context(App *app, int limit) {
     app_ctx->limit = limit;
 }
 
+static int cmp_match_desc(const void *a, const void *b) {
+    int sa = ((const Match *)a)->score;
+    int sb = ((const Match *)b)->score;
+    return (sb > sa) - (sb < sa);
+}
+
 static int apps_match(const char *query) {
     if (!query)
         return 0;
@@ -63,7 +69,8 @@ static int apps_search(const char *query, Result *results, int max) {
         }
         app->has_more_results = (result_count < app->app_count);
     } else {
-        for (int i = 0; i < app->app_count; i++) {
+        int max_results = app->search_limit;
+        for (int i = 0; i < app->app_count && result_count < max_results; i++) {
             int keyword_count = app->apps.keywords ? app->apps.keywords[i].keyword_count : 0;
             char **keywords = app->apps.keywords ? app->apps.keywords[i].keywords : NULL;
 
@@ -71,18 +78,19 @@ static int apps_search(const char *query, Result *results, int max) {
                                    app->ui.query_lower,
                                    app->apps.nameLowerList[i],
                                    app->ui.query_len,
-                                   app->apps.nameLenList[i]);
+                                   app->apps.nameLenList[i],
+                                   app->ui.query,
+                                   app->apps.nameList[i]);
 
             if (score > 0) {
                 app->top[result_count].name = app->apps.nameList[i];
                 app->top[result_count].exec = app->apps.execCmdList[i];
                 app->top[result_count].score = score;
                 result_count++;
-                if (result_count >= limit)
-                    break;
             }
         }
-        app->has_more_results = (result_count < app->app_count);
+        qsort(app->top, (size_t)result_count, sizeof(Match), cmp_match_desc);
+        app->has_more_results = (result_count >= max_results);
     }
 
     app->top_n = result_count;

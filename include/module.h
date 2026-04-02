@@ -31,6 +31,7 @@ struct Module {
     int (*search)(const char *query, Result *results, int max);
     void (*execute)(Result *result);
     void (*destroy)(Module *module);
+    int initialized;
 };
 
 Module *module_create(const char *name);

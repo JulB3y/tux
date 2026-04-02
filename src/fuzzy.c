@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <string.h>
 
 #include "fuzzy.h"
@@ -43,22 +44,85 @@ static int containsLower(const char *haystack, const char *needle) {
   return 0;
 }
 
+static int isWordBoundary(const char *name, int pos) {
+  if (pos == 0)
+    return 1;
+  char prev = name[pos - 1];
+  if (prev == ' ' || prev == '-' || prev == '_' || prev == '.')
+    return 1;
+  if (islower((unsigned char)prev) && isupper((unsigned char)name[pos]))
+    return 1;
+  return 0;
+}
+
+static int findContainsPos(const char *haystack, const char *needle) {
+  if (!*needle)
+    return 0;
+  for (int i = 0; haystack[i]; i++) {
+    int j = 0;
+    while (needle[j] && haystack[i + j] && haystack[i + j] == needle[j])
+      j++;
+    if (!needle[j])
+      return i;
+  }
+  return -1;
+}
+
+static int findSubseqFirstPos(const char *q, const char *s) {
+  for (int i = 0; s[i]; i++) {
+    if (s[i] == q[0])
+      return i;
+  }
+  return -1;
+}
+
+static int computeBonus(const char *queryLower, const char *nameLower,
+                        const char *queryOrig, const char *nameOrig,
+                        int queryLen, int matchPos) {
+  int bonus = 0;
+
+  if (isWordBoundary(nameOrig, matchPos))
+    bonus += 25;
+
+  if (queryOrig[0] == nameOrig[matchPos])
+    bonus += 10;
+
+  if (queryLen >= 2 && nameLower[matchPos + 1] == queryLower[1])
+    bonus += 20;
+
+  return bonus;
+}
+
 int fuzzyScore(const char **keywords, int keyword_count,
                const char *queryLower, const char *nameLower,
-               int queryLen, int nameLen) {
+               int queryLen, int nameLen,
+               const char *queryOrig, const char *nameOrig) {
   if (queryLen == 0)
     return 1;
 
-  if (strcmp(queryLower, nameLower) == 0)
-    return 1000;
-  if (startsWithLower(nameLower, queryLower))
-    return 300;
-  if (containsLower(nameLower, queryLower))
-    return 180;
-  if (isSubsequenceLower(queryLower, nameLower))
-    return 100;
+  int bonus = 0;
+  int base_score = 0;
+  int matchPos = -1;
 
-  int score = 0;
+  if (strcmp(queryLower, nameLower) == 0) {
+    base_score = 1000;
+    matchPos = 0;
+  } else if (startsWithLower(nameLower, queryLower)) {
+    base_score = 300;
+    matchPos = 0;
+  } else if (containsLower(nameLower, queryLower)) {
+    base_score = 180;
+    matchPos = findContainsPos(nameLower, queryLower);
+  } else if (isSubsequenceLower(queryLower, nameLower)) {
+    base_score = 100;
+    matchPos = findSubseqFirstPos(queryLower, nameLower);
+  }
+
+  if (base_score > 0 && matchPos >= 0)
+    bonus = computeBonus(queryLower, nameLower, queryOrig, nameOrig,
+                         queryLen, matchPos);
+
+  int score = base_score + bonus;
 
   for (int i = 0; i < keyword_count; i++) {
     const char *keyword = keywords[i];

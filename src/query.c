@@ -105,6 +105,14 @@ int executeQuery(App *app, QueryType type) {
     return 0;
   }
 
+  if (!target->initialized && target->init) {
+    if (target->init() != 0) {
+      app->ui.mode[0] = '\0';
+      return 0;
+    }
+    target->initialized = 1;
+  }
+
   Result results[16];
   memset(results, 0, sizeof(results));
 
