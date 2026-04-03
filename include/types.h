@@ -45,6 +45,8 @@ typedef struct applist {
   int *nameLenList;
   int count;
 
+  int *launchCounts;
+
   AppKeywords *keywords;
 } AppList;
 
@@ -66,6 +68,7 @@ typedef struct {
   int has_more_results;
 
   Config *config;
+  char historyPath[512];
 } App;
 
 #endif

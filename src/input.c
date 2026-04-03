@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "exec.h"
+#include "history.h"
 #include "input.h"
 #include "query.h"
 #include "types.h"
@@ -136,6 +137,7 @@ int keyProcessing(App *app, int key) {
       return 0;
     }
     launchApp(top[ui->selected].exec);
+    history_record_launch(top[ui->selected].name, app->historyPath);
     return 0;
   } else if (key == KEY_LEFT) {
     if (ui->cursor_pos > 0) {

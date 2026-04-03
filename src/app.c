@@ -19,6 +19,7 @@
 #include "cache.h"
 #include "config.h"
 #include "file.h"
+#include "history.h"
 #include "input.h"
 #include "module.h"
 #include "query.h"
@@ -49,6 +50,7 @@ static void freeStorage(AppList *a) {
   free(a->nameLowerSrc);
 
   free(a->nameLenList);
+  free(a->launchCounts);
 
   if (a->keywords) {
     for (int i = 0; i < a->count; i++) {
@@ -151,6 +153,18 @@ App *app_init() {
       appList->keywords = NULL;
     }
   }
+
+  char historyPath[512];
+  snprintf(historyPath, sizeof(historyPath), "%s/history.dat", dataDir);
+
+  history_load(historyPath);
+  snprintf(app->historyPath, sizeof(app->historyPath), "%s", historyPath);
+  appList->launchCounts = calloc((size_t)appList->count, sizeof(int));
+  if (appList->launchCounts) {
+    for (int i = 0; i < appList->count; i++)
+      appList->launchCounts[i] = history_get(appList->nameList[i]);
+  }
+  history_destroy();
 
   modules_init(app);
 

@@ -20,7 +20,7 @@ endif
 
 TARGET = tux
 SRC = src/app.c src/cache.c src/config.c src/exec.c src/file.c \
-      src/fuzzy.c src/input.c src/main.c src/query.c \
+      src/fuzzy.c src/history.c src/input.c src/main.c src/query.c \
       src/term.c src/ui.c src/util.c
 MODULES_SRC = src/modules/registry.c src/modules/calc.c \
               src/modules/apps.c src/modules/web.c

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,6 +12,8 @@ typedef struct {
     App *app;
     int limit;
 } AppSearchContext;
+
+#define HISTORY_WEIGHT 50
 
 static AppSearchContext *app_ctx = NULL;
 
@@ -83,6 +86,10 @@ static int apps_search(const char *query, Result *results, int max) {
                                    app->apps.nameList[i]);
 
             if (score > 0) {
+                int freq = app->apps.launchCounts ? app->apps.launchCounts[i] : 0;
+                if (freq > 0)
+                    score += (int)(log((double)freq + 1) * HISTORY_WEIGHT);
+
                 app->top[result_count].name = app->apps.nameList[i];
                 app->top[result_count].exec = app->apps.execCmdList[i];
                 app->top[result_count].score = score;
