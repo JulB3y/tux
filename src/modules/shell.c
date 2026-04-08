@@ -22,7 +22,7 @@ void shell_module_set_config(Config *config) {
     shell_ctx->config = config;
 }
 
-static const char *detect_terminal(void) {
+const char *shell_detect_terminal(void) {
     if (shell_ctx && shell_ctx->config) {
         char *configured = config_get_std_terminal(shell_ctx->config);
         if (configured)
@@ -30,8 +30,16 @@ static const char *detect_terminal(void) {
     }
 
     const char *term = getenv("TERM");
-    if (term && strcmp(term, "xterm-kitty") == 0)
-        return "kitty";
+    if (term && strncmp(term, "xterm-", 6) == 0) {
+        const char *name = term + 6;
+        if (strcmp(name, "kitty") == 0)
+            return "kitty";
+        if (strcmp(name, "ghostty") == 0)
+            return "ghostty";
+        if (strcmp(name, "alacritty") == 0)
+            return "alacritty";
+        return name;
+    }
 
     const char *term_program = getenv("TERM_PROGRAM");
     if (term_program) {
@@ -81,7 +89,7 @@ static void shell_execute(Result *result) {
     if (!result)
         return;
 
-    const char *terminal = detect_terminal();
+    const char *terminal = shell_detect_terminal();
     exec_in_terminal(terminal, result->title);
 }
 

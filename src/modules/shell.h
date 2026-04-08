@@ -6,5 +6,6 @@
 
 Module *shell_module_create(void);
 void shell_module_set_config(Config *config);
+const char *shell_detect_terminal(void);
 
 #endif

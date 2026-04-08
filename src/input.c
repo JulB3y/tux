@@ -11,6 +11,7 @@
 #include "query.h"
 #include "types.h"
 #include "config.h"
+#include "modules/shell.h"
 
 enum {
   KEY_UP = 1000,
@@ -138,8 +139,7 @@ int keyProcessing(App *app, int key) {
       return 0;
     }
     if (strcmp(ui->mode, "shell") == 0) {
-      char *cfg_term = config_get_std_terminal(app->config);
-      const char *terminal = cfg_term ? cfg_term : "xterm";
+      const char *terminal = shell_detect_terminal();
       const char *cmd = ui->query + 1;
       while (*cmd == ' ')
         cmd++;
