@@ -171,9 +171,11 @@ Config *config_init() {
   config->web_config_count = 0;
   config->web_config_capacity = 0;
   config->std_browser = NULL;
+  config->std_terminal = NULL;
   config->enabled_apps = 1;
   config->enabled_calc = 1;
   config->enabled_web = 1;
+  config->enabled_shell = 1;
   config->string_pool = malloc(INITIAL_POOL_SIZE);
   config->pool_size = 0;
   config->pool_capacity = INITIAL_POOL_SIZE;
@@ -330,6 +332,9 @@ Config *config_init() {
             if (strcmp(key, "std.browser") == 0) {
               char *unquoted = remove_quotes(value);
               config->std_browser = pool_strdup(config, unquoted);
+            } else if (strcmp(key, "std.terminal") == 0) {
+              char *unquoted = remove_quotes(value);
+              config->std_terminal = pool_strdup(config, unquoted);
             }
           }
 
@@ -360,6 +365,8 @@ Config *config_init() {
               config->enabled_calc = enabled;
             } else if (strcmp(key, "web") == 0) {
               config->enabled_web = enabled;
+            } else if (strcmp(key, "shell") == 0) {
+              config->enabled_shell = enabled;
             }
           }
 
@@ -435,6 +442,14 @@ int config_get_module_enabled(Config *config, const char *module_name) {
     return config->enabled_calc;
   if (strcmp(module_name, "web") == 0)
     return config->enabled_web;
+  if (strcmp(module_name, "shell") == 0)
+    return config->enabled_shell;
 
   return 1;
+}
+
+char *config_get_std_terminal(Config *config) {
+  if (!config)
+    return NULL;
+  return config->std_terminal;
 }

@@ -10,6 +10,7 @@
 #include "input.h"
 #include "query.h"
 #include "types.h"
+#include "config.h"
 
 enum {
   KEY_UP = 1000,
@@ -134,6 +135,15 @@ int keyProcessing(App *app, int key) {
   } else if (key == '\r' || key == '\n') {
     if (strcmp(ui->mode, "calc") == 0 && ui->calc_result[0] != '\0') {
       copyToClipboard(ui->calc_result);
+      return 0;
+    }
+    if (strcmp(ui->mode, "shell") == 0) {
+      char *cfg_term = config_get_std_terminal(app->config);
+      const char *terminal = cfg_term ? cfg_term : "xterm";
+      const char *cmd = ui->query + 1;
+      while (*cmd == ' ')
+        cmd++;
+      exec_in_terminal(terminal, cmd);
       return 0;
     }
     launchApp(top[ui->selected].exec);

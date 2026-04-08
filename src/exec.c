@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -38,6 +39,33 @@ void launchApp(char *exec) {
       close(devnull);
 
     execl("/bin/sh", "sh", "-c", exec, NULL);
+    _exit(127);
+  }
+
+  waitpid(pid, NULL, 0);
+}
+
+void exec_in_terminal(const char *terminal, const char *command) {
+  pid_t pid = fork();
+  if (pid < 0)
+    return;
+
+  if (pid == 0) {
+    signal(SIGHUP, SIG_IGN);
+
+    if (setsid() < 0)
+      _exit(127);
+
+    pid_t pid2 = fork();
+    if (pid2 < 0)
+      _exit(127);
+    if (pid2 > 0)
+      _exit(0);
+
+    char wrapped[1024];
+    snprintf(wrapped, sizeof(wrapped), "%s; exec $SHELL", command);
+
+    execlp(terminal, terminal, "-e", "sh", "-c", wrapped, NULL);
     _exit(127);
   }
 

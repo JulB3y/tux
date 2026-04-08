@@ -13,6 +13,7 @@
 #include "modules/apps.h"
 #include "modules/calc.h"
 #include "modules/web.h"
+#include "modules/shell.h"
 
 static ModuleRegistry *global_registry = NULL;
 static Config *global_config = NULL;
@@ -56,6 +57,10 @@ QueryType parseQuery(const char *query) {
     return QUERY_TYPE_APP_SEARCH;
   }
 
+  if (query[0] == '$') {
+    return QUERY_TYPE_COMMAND;
+  }
+
   int has_operators = containsOperator(query);
   int has_functions = containsFunction(query);
   int has_parentheses = strchr(query, '(') != NULL || strchr(query, ')') != NULL;
@@ -92,6 +97,13 @@ int executeQuery(App *app, QueryType type) {
     case QUERY_TYPE_WEB_SEARCH:
       target = registry_find_by_name(global_registry, "web");
       if (!target || !module_enabled("web")) {
+        app->ui.mode[0] = '\0';
+        return 0;
+      }
+      break;
+    case QUERY_TYPE_COMMAND:
+      target = registry_find_by_name(global_registry, "shell");
+      if (!target || !module_enabled("shell")) {
         app->ui.mode[0] = '\0';
         return 0;
       }
@@ -164,6 +176,13 @@ int executeQuery(App *app, QueryType type) {
     return 1;
   }
 
+  if (results[0].type == RESULT_COMMAND) {
+    strcpy(app->ui.mode, "shell");
+    app->top_n = 0;
+    app->has_more_results = 0;
+    return 1;
+  }
+
   if (results[0].type == RESULT_APP) {
     strcpy(app->ui.mode, "apps");
     return 1;
@@ -201,6 +220,14 @@ void modules_init(App *app) {
     if (web) {
       web_module_set_config(app->config);
       registry_add_module(global_registry, web);
+    }
+  }
+
+  if (module_enabled("shell")) {
+    Module *shell = shell_module_create();
+    if (shell) {
+      shell_module_set_config(app->config);
+      registry_add_module(global_registry, shell);
     }
   }
 }

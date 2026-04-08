@@ -79,6 +79,10 @@ void printResults(int rows, int cols, Match *top, int top_n, int scroll_offset, 
       visible++;
     }
   }
+
+  for (int i = visible; i < max_rows; i++) {
+    printf("\x1b[%d;1H\x1b[2K", rows - 3 - i);
+  }
 }
 
 void highlightSelected(Match *top, int selected, int scroll_offset, TermState *term, int max_rows) {
