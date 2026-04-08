@@ -10,7 +10,6 @@ A fast, dependency-free app launcher for Unix systems written in C.
 > [!CAUTION]  
 > **Work in Progress** - The app works but may have bugs. Feel free to test and report any issues you encounter!
 
----
 
 ## Features
 
@@ -43,7 +42,6 @@ A fast, dependency-free app launcher for Unix systems written in C.
 - scans `/usr/share/applications/` for `.desktop` entries
 - **Modular query system** with module registry for extensibility
 
----
 
 ## Installation
 
@@ -75,7 +73,6 @@ sudo cp tux /usr/local/bin/
 sudo chmod +x /usr/local/bin/tux
 ```
 
----
 
 ## Usage
 
@@ -173,7 +170,6 @@ log(10)                → 2.3026
 | `Enter` | Launch selected app / Copy calc result to clipboard |
 | `Escape` | Clear query / Exit |
 
----
 
 ## Architecture
 
@@ -247,7 +243,6 @@ typedef struct Module {
 
 Modules are discovered via `registry_find_by_query()` which calls each module's `match()` function until one returns true.
 
----
 
 ## Credits
 
@@ -255,13 +250,11 @@ Special thanks to contributors who made this project possible:
 
 - **[HenryLoM](https://github.com/HenryLoM)** - Added macOS support
 
----
 
 ## License
 
 This project is open source. Check the repository for license details.
 
----
 
 ## Reporting Issues
 
@@ -271,7 +264,6 @@ Found a bug? Have a suggestion? Please open an issue on GitHub with:
 - Steps to reproduce the issue
 - Expected vs actual behavior
 
----
 
 ## Contributing
 
