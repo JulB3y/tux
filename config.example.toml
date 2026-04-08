@@ -34,3 +34,15 @@ url = "https://duckduckgo.com/?q=%s"
 # uses xdg-open if not set
 # for example: firefox, chromium, google-chrome, xdg-open, etc.
 std.browser = "firefox"
+
+# sets terminal for shell commands ($ prefix)
+# auto-detects from $TERM/$TERM_PROGRAM if not set
+# supports: kitty, ghostty, alacritty, xterm
+# std.terminal = "kitty"
+
+# feature toggles (all enabled by default)
+[features]
+apps = true
+calc = true
+web = true
+shell = true
