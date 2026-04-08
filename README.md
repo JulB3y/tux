@@ -32,6 +32,11 @@ A fast, dependency-free app launcher for Unix systems written in C.
 - Results displayed inline with query
 - Copy results to clipboard with Enter
 
+### Shell Commands
+- Prefix queries with `$` to run shell commands in a terminal
+- Auto-detects your terminal emulator (kitty, ghostty, alacritty, xterm)
+- Terminal stays open after command completes
+
 ### Technical
 - Works on Linux and macOS
 - custom TUI (no ncurses)
@@ -119,9 +124,11 @@ firefox.keywords = ["browser", "web"]
 apps = true
 calc = true
 web = true
+shell = true
 
 [settings]
 std.browser = firefox
+std.terminal = ghostty
 
 [[web.modes]]
 name = "Wikipedia"
@@ -166,20 +173,6 @@ log(10)                → 2.3026
 | `Enter` | Launch selected app / Copy calc result to clipboard |
 | `Escape` | Clear query / Exit |
 
-## Roadmap
-
-*(Development not necessarily in order)*
-
-- [x] Calculator functionality
-- [ ] User configuration
-  - [x] Custom keywords for apps
-  - [ ] Style options
-  - [ ] Color schemes
-  - [ ] Custom app paths
-- [ ] File search and opening
-- [x] Web search with query
-- [ ] Quick shell commands
-
 ---
 
 ## Architecture
@@ -200,6 +193,7 @@ Tux uses a **modular architecture** with a central **Module Registry**. Each fea
 │  │  calc  → modules/calc.c  (math expressions)          │  │
 │  │  apps  → modules/apps.c  (app launcher)              │  │
 │  │  web   → modules/web.c   (web search fallback)       │  │
+│  │  shell → modules/shell.c (quick shell commands)      │  │
 │  └──────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -231,8 +225,8 @@ tux-launcher/
 │   ├── module.h         # Module interface definitions
 │   ├── calc.c/h         # Calculator module
 │   ├── apps.c/h         # Application search module
-│   └── web.c/h          # Web search module
-├── docs/                # Documentation
+│   ├── web.c/h          # Web search module
+│   └── shell.c/h        # Shell commands module
 ├── Makefile
 └── README.md
 ```
