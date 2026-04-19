@@ -6,7 +6,7 @@
 #include "../../include/types.h"
 #include "../../include/config.h"
 #include "../../include/exec.h"
-#include "shell.h"
+#include "../../include/modules/shell.h"
 
 typedef struct {
     Config *config;
