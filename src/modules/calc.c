@@ -208,18 +208,36 @@ static TokenStack *shuntingYard(void) {
         }
 
         if (needsImplicitMultiplication(prev_type, token.type)) {
-            Token mult_token = {.type = TOKEN_OPERATOR, .op = '*'};
-            while (operators->size > 0) {
-                Token top = peekToken(operators);
-                if (top.type == TOKEN_OPERATOR &&
-                    ((isRightAssociative(mult_token.op) && getPrecedence(mult_token.op) < getPrecedence(top.op)) ||
-                     (!isRightAssociative(mult_token.op) && getPrecedence(mult_token.op) <= getPrecedence(top.op)))) {
-                    pushToken(output, popToken(operators));
-                } else {
-                    break;
+            // Special case: if we have a negative number after ')', treat as subtraction
+            if (prev_type == TOKEN_RPAREN && token.type == TOKEN_NUMBER && token.number < 0) {
+                Token sub_token = {.type = TOKEN_OPERATOR, .op = '-'};
+                token.number = -token.number;  // Make the number positive
+                
+                while (operators->size > 0) {
+                    Token top = peekToken(operators);
+                    if (top.type == TOKEN_OPERATOR &&
+                        ((isRightAssociative(sub_token.op) && getPrecedence(sub_token.op) < getPrecedence(top.op)) ||
+                         (!isRightAssociative(sub_token.op) && getPrecedence(sub_token.op) <= getPrecedence(top.op)))) {
+                        pushToken(output, popToken(operators));
+                    } else {
+                        break;
+                    }
                 }
+                pushToken(operators, sub_token);
+            } else {
+                Token mult_token = {.type = TOKEN_OPERATOR, .op = '*'};
+                while (operators->size > 0) {
+                    Token top = peekToken(operators);
+                    if (top.type == TOKEN_OPERATOR &&
+                        ((isRightAssociative(mult_token.op) && getPrecedence(mult_token.op) < getPrecedence(top.op)) ||
+                         (!isRightAssociative(mult_token.op) && getPrecedence(mult_token.op) <= getPrecedence(top.op)))) {
+                        pushToken(output, popToken(operators));
+                    } else {
+                        break;
+                    }
+                }
+                pushToken(operators, mult_token);
             }
-            pushToken(operators, mult_token);
         }
 
         if (token.type == TOKEN_NUMBER) {
